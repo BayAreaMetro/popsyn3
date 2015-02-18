@@ -6,7 +6,7 @@
     <type>MS_SQL</type>
     <!--<user></user>-->
     <password></password>
-    <dbName>MTCPopSynIII</dbName>
+    <dbName>popsyn3_pop10_tm2</dbName>
   </database>
 
   <!-- Specify the PUMS data table names from which PUMA incidence tables are generated, as well as the field name for a unique identifier and the PUMS weight field name -->

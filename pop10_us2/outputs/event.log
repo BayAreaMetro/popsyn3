@@ -1,0 +1,26 @@
+18-Feb-2015 09:11:52:219, INFO, JPPF client starting with sslEnabled = false
+18-Feb-2015 09:11:52:227, INFO, start of runPopulationGenerator: parsing xml file
+18-Feb-2015 09:11:52:322, INFO, connection [driver1] created
+18-Feb-2015 09:11:52:655, INFO, running 1 processing thread
+18-Feb-2015 09:11:52:656, INFO, Using default thread manager
+18-Feb-2015 09:11:52:727, INFO, [client: driver1 - ClassServer] Attempting connection to the class server at localhost:11111
+18-Feb-2015 09:11:53:801, INFO, creating the controls arrays.
+18-Feb-2015 09:11:54:265, INFO, balancing household weights over initial PUMA controls ...
+18-Feb-2015 09:11:54:266, INFO, getting incidence table data for pums ...
+18-Feb-2015 09:11:54:297, ERROR, error executing SQL query:
+18-Feb-2015 09:11:54:300, ERROR, SQL:  SELECT hhnum FROM hhtable WHERE PUMA=2204 ORDER BY hhnum
+com.microsoft.sqlserver.jdbc.SQLServerException: Invalid object name 'hhtable'.
+	at com.microsoft.sqlserver.jdbc.SQLServerException.makeFromDatabaseError(SQLServerException.java:216)
+	at com.microsoft.sqlserver.jdbc.SQLServerStatement.getNextResult(SQLServerStatement.java:1515)
+	at com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement.doExecutePreparedStatement(SQLServerPreparedStatement.java:404)
+	at com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement$PrepStmtExecCmd.doExecute(SQLServerPreparedStatement.java:350)
+	at com.microsoft.sqlserver.jdbc.TDSCommand.execute(IOBuffer.java:5696)
+	at com.microsoft.sqlserver.jdbc.SQLServerConnection.executeCommand(SQLServerConnection.java:1715)
+	at com.microsoft.sqlserver.jdbc.SQLServerStatement.executeCommand(SQLServerStatement.java:180)
+	at com.microsoft.sqlserver.jdbc.SQLServerStatement.executeStatement(SQLServerStatement.java:155)
+	at com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement.executeQuery(SQLServerPreparedStatement.java:285)
+	at sql.ListBalancingSqlHelper.submitGetIdsQuery(ListBalancingSqlHelper.java:445)
+	at popGenerator.PopGenerator.getIncidenceData(PopGenerator.java:368)
+	at popGenerator.PopGenerator.runPopulationGenerator(PopGenerator.java:174)
+	at popGenerator.PopGenerator.main(PopGenerator.java:2504)
+18-Feb-2015 09:11:54:323, INFO, Time for full model run = 0.04 minutes.

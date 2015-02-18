@@ -1,0 +1,51 @@
+
+(1 rows affected)
+
+(1 rows affected)
+
+(1 rows affected)
+
+(1 rows affected)
+
+(1 rows affected)
+
+(1 rows affected)
+
+(1 rows affected)
+Loaded raw PUMS datasets...
+Msg 2714, Level 16, State 6, Server LUMODEL\LU_MSSQL, Line 1
+There is already an object named 'tempHH' in the database.
+Msg 4902, Level 16, State 1, Server LUMODEL\LU_MSSQL, Line 2
+Cannot find the object "#tempHH" because it does not exist or you do not have permissions.
+Msg 208, Level 16, State 1, Server LUMODEL\LU_MSSQL, Line 3
+Invalid object name '#tempPer'.
+Msg 208, Level 16, State 1, Server LUMODEL\LU_MSSQL, Line 3
+Invalid object name '#tempPer'.
+Msg 208, Level 16, State 1, Server LUMODEL\LU_MSSQL, Line 3
+Invalid object name '#tempPer'.
+Msg 4902, Level 16, State 1, Server LUMODEL\LU_MSSQL, Line 2
+Cannot find the object "dbo.hhtable" because it does not exist or you do not have permissions.
+Msg 4902, Level 16, State 1, Server LUMODEL\LU_MSSQL, Line 4
+Cannot find the object "dbo.perstable" because it does not exist or you do not have permissions.
+Msg 1088, Level 16, State 9, Server LUMODEL\LU_MSSQL, Line 3
+Cannot find the object "dbo.hhtable" because it does not exist or you do not have permissions.
+Msg 1088, Level 16, State 9, Server LUMODEL\LU_MSSQL, Line 2
+Cannot find the object "dbo.perstable" because it does not exist or you do not have permissions.
+Finished rebuilding indexes...
+Msg 208, Level 16, State 1, Server LUMODEL\LU_MSSQL, Line 5
+Invalid object name 'dbo.hhtable'.
+Created raw tables...
+Created MAZ controls...
+Created TAZ controls...
+Created META controls...
+Control table creation complete!
+
+(39749 rows affected)
+
+(4687 rows affected)
+
+(9 rows affected)
+
+(7140215 rows affected)
+
+(2608023 rows affected)

@@ -5,18 +5,18 @@ REM ###########################################################################
 
 SET SCENARIO=TESTRUN
 SET SQLSERVER=LUMODEL\LU_MSSQL
-SET DATABASE=MTCPopSynIII
+SET DATABASE=popsyn3_pop10_tm2
 SET MY_PATH=%CD%
 
-SET pumsHH_File='C:\Working\PopulationSynthesizer\PopSyn3\data\ss11hca.csv'
-SET pumsPersons_File='C:\Working\PopulationSynthesizer\PopSyn3\data\ss11pca.csv'
+SET pumsHH_File='C:\Working\popsyn3\pop10_tm2\data\ss11hca.csv'
+SET pumsPersons_File='C:\Working\popsyn3\pop10_tm2\data\ss11pca.csv'
 
-SET mazData_File='C:\Working\PopulationSynthesizer\PopSyn3\data\mazData.csv'
-SET tazData_File='C:\Working\PopulationSynthesizer\PopSyn3\data\tazData.csv'
-SET countyData_File='C:\Working\PopulationSynthesizer\PopSyn3\data\countyData.csv'
-SET personsByAge_File='C:\Working\PopulationSynthesizer\PopSyn3\data\personsByAge.csv'
+SET mazData_File='C:\Working\popsyn3\pop10_tm2\data\mazData.csv'
+SET tazData_File='C:\Working\popsyn3\pop10_tm2\data\tazData.csv'
+SET countyData_File='C:\Working\popsyn3\pop10_tm2\data\countyData.csv'
+SET personsByAge_File='C:\Working\popsyn3\pop10_tm2\data\personsByAge.csv'
 
-SET geographicCWalk_File='C:\Working\PopulationSynthesizer\PopSyn3\data\geographicCwalk.csv'
+SET geographicCWalk_File='C:\Working\popsyn3\pop10_tm2\data\geographicCwalk.csv'
 
 SET settingsFile=settings.xml
 
@@ -37,14 +37,14 @@ SQLCMD -S %SQLSERVER% -d %DATABASE% -E -Q "INSERT INTO csv_filenames(dsc, filena
 SQLCMD -S %SQLSERVER% -d %DATABASE% -E -Q "INSERT INTO csv_filenames(dsc, filename) VALUES ('personsByAge_File', %personsByAge_File%);" >> "%MY_PATH%\outputs\serverLog"
 SQLCMD -S %SQLSERVER% -d %DATABASE% -E -Q "INSERT INTO csv_filenames(dsc, filename) VALUES ('geographicCWalk_File', %geographicCWalk_File%);" >> "%MY_PATH%\outputs\serverLog"
 
-REM # SQLCMD -S %SQLSERVER% -d %DATABASE% -E -i "%MY_PATH%\scripts\PUMS Table creation.sql" >> "%MY_PATH%\outputs\serverLog"
+SQLCMD -S %SQLSERVER% -d %DATABASE% -E -i "%MY_PATH%\scripts\PUMS Table creation.sql" >> "%MY_PATH%\outputs\serverLog"
 SQLCMD -S %SQLSERVER% -d %DATABASE% -E -i "%MY_PATH%\scripts\importControls.sql" >> "%MY_PATH%\outputs\serverLog"
 
 REM ###########################################################################
 
 ECHO %startTime%%Time%
 ECHO Running population synthesizer...
-SET JAVA_64_PATH=C:\Progra~1\Java\jre1.8.0_20
+SET JAVA_64_PATH=C:\Progra~1\Java\jre1.8.0_25
 SET CLASSPATH=runtime\config
 SET CLASSPATH=%CLASSPATH%;runtime\*
 SET CLASSPATH=%CLASSPATH%;runtime\lib\*

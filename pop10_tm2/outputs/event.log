@@ -1,14 +1,14 @@
-21-Nov-2014 13:30:35:857, INFO, JPPF client starting with sslEnabled = false
-21-Nov-2014 13:30:35:857, INFO, start of runPopulationGenerator: parsing xml file
-21-Nov-2014 13:30:35:951, INFO, connection [driver1] created
-21-Nov-2014 13:30:36:170, INFO, running 1 processing thread
-21-Nov-2014 13:30:36:170, INFO, Using default thread manager
-21-Nov-2014 13:30:36:248, INFO, [client: driver1 - ClassServer] Attempting connection to the class server at localhost:11111
-21-Nov-2014 13:30:37:388, INFO, creating the controls arrays.
-21-Nov-2014 13:30:37:842, INFO, balancing household weights over initial PUMA controls ...
-21-Nov-2014 13:30:37:842, INFO, getting incidence table data for pums ...
-21-Nov-2014 13:30:37:873, ERROR, error executing SQL query:
-21-Nov-2014 13:30:37:873, ERROR, SQL:  SELECT hhnum FROM hhtable WHERE PUMA=2204 ORDER BY hhnum
+18-Feb-2015 09:11:52:219, INFO, JPPF client starting with sslEnabled = false
+18-Feb-2015 09:11:52:227, INFO, start of runPopulationGenerator: parsing xml file
+18-Feb-2015 09:11:52:322, INFO, connection [driver1] created
+18-Feb-2015 09:11:52:655, INFO, running 1 processing thread
+18-Feb-2015 09:11:52:656, INFO, Using default thread manager
+18-Feb-2015 09:11:52:727, INFO, [client: driver1 - ClassServer] Attempting connection to the class server at localhost:11111
+18-Feb-2015 09:11:53:801, INFO, creating the controls arrays.
+18-Feb-2015 09:11:54:265, INFO, balancing household weights over initial PUMA controls ...
+18-Feb-2015 09:11:54:266, INFO, getting incidence table data for pums ...
+18-Feb-2015 09:11:54:297, ERROR, error executing SQL query:
+18-Feb-2015 09:11:54:300, ERROR, SQL:  SELECT hhnum FROM hhtable WHERE PUMA=2204 ORDER BY hhnum
 com.microsoft.sqlserver.jdbc.SQLServerException: Invalid object name 'hhtable'.
 	at com.microsoft.sqlserver.jdbc.SQLServerException.makeFromDatabaseError(SQLServerException.java:216)
 	at com.microsoft.sqlserver.jdbc.SQLServerStatement.getNextResult(SQLServerStatement.java:1515)
@@ -23,4 +23,4 @@ com.microsoft.sqlserver.jdbc.SQLServerException: Invalid object name 'hhtable'.
 	at popGenerator.PopGenerator.getIncidenceData(PopGenerator.java:368)
 	at popGenerator.PopGenerator.runPopulationGenerator(PopGenerator.java:174)
 	at popGenerator.PopGenerator.main(PopGenerator.java:2504)
-21-Nov-2014 13:30:37:904, INFO, Time for full model run = 0.04 minutes.
+18-Feb-2015 09:11:54:323, INFO, Time for full model run = 0.04 minutes.
