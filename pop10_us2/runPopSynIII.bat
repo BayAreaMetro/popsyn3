@@ -5,18 +5,18 @@ REM ###########################################################################
 
 SET SCENARIO=TESTRUN
 SET SQLSERVER=LUMODEL\LU_MSSQL
-SET DATABASE=popsyn3_pop10_tm2
+SET DATABASE=popsyn3_pop10_us2
 SET MY_PATH=%CD%
 
-SET pumsHH_File='C:\Working\popsyn3\pop10_tm2\data\ss11hca.csv'
-SET pumsPersons_File='C:\Working\popsyn3\pop10_tm2\data\ss11pca.csv'
+SET pumsHH_File='C:\Working\popsyn3\pop10_us2\data\ss11hca.csv'
+SET pumsPersons_File='C:\Working\popsyn3\pop10_us2\data\ss11pca.csv'
 
-SET mazData_File='C:\Working\popsyn3\pop10_tm2\data\mazData.csv'
-SET tazData_File='C:\Working\popsyn3\pop10_tm2\data\tazData.csv'
-SET countyData_File='C:\Working\popsyn3\pop10_tm2\data\countyData.csv'
-SET personsByAge_File='C:\Working\popsyn3\pop10_tm2\data\personsByAge.csv'
+SET mazData_File='C:\Working\popsyn3\pop10_us2\data\mazData.csv'
+SET tazData_File='C:\Working\popsyn3\pop10_us2\data\tazData.csv'
+SET countyData_File='C:\Working\popsyn3\pop10_us2\data\countyData.csv'
+SET personsByAge_File='C:\Working\popsyn3\pop10_us2\data\personsByAge.csv'
 
-SET geographicCWalk_File='C:\Working\popsyn3\pop10_tm2\data\geographicCwalk.csv'
+SET geographicCWalk_File='C:\Working\popsyn3\pop10_us2\data\geographicCwalk.csv'
 
 SET settingsFile=settings.xml
 
