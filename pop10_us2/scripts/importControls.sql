@@ -3,7 +3,7 @@
 
 --This implementation of PopSyn uses these geographies
 --	MAZ  -> MTC TM2 MAZ System
---	TAZ  -> MTC TM2 TAZ System
+--	TAZ  -> MTC TM1 TAZ System ie 1454
 --	META -> Bay Area Counties
 --------------------------------------------------------------------------------
 SET NOCOUNT ON;	
@@ -48,23 +48,23 @@ SET @geographicCWalk_File = (SELECT filename FROM csv_filenames WHERE dsc = 'geo
 --							  SETTING UP TEMPORARY TABLES FOR RAW INPUTS
 /*###################################################################################################*/
 --Loading MAZ data table
-CREATE TABLE #mazData ([MAZ_ORIGINAL] INT
+CREATE TABLE #mazData ([MAZ] INT
 	,[HH] INT
-	CONSTRAINT [PK tempdb.mazData MAZ_ORIGINAL] PRIMARY KEY CLUSTERED (MAZ_ORIGINAL)
+	CONSTRAINT [PK tempdb.mazData MAZ] PRIMARY KEY CLUSTERED (MAZ)
 );
 SET @query = ('BULK INSERT #mazData FROM ' + '''' + @mazData_File + '''' + ' WITH (FIELDTERMINATOR = ' + 
 				''',''' + ', ROWTERMINATOR = ' + '''\n''' + ', FIRSTROW = 2, MAXERRORS = 0, TABLOCK);');
 EXEC(@query);
 
 --Loading TAZ data table
-CREATE TABLE #tazData( [TAZ_ORIGINAL] INT
+CREATE TABLE #tazData( [TAZ] INT
 	, [HHINC1] INT
 	, [HHINC2] INT
 	, [HHINC3] INT
 	, [HHINC4] INT
 
-	CONSTRAINT [PK tempdb.tazData TAZ_ORIGINAL]
-      PRIMARY KEY (TAZ_ORIGINAL)
+	CONSTRAINT [PK tempdb.tazData TAZ]
+      PRIMARY KEY (TAZ)
 );
 SET @query = ('BULK INSERT #tazData FROM ' + '''' + @tazData_File + '''' + ' WITH (FIELDTERMINATOR = ' + 
 				''',''' + ', ROWTERMINATOR = ' + '''\n''' + ', FIRSTROW = 2, MAXERRORS = 0, TABLOCK);');
@@ -107,8 +107,6 @@ EXEC(@query);
 --Loading the geographic correspondence MAZ -> TAZ -> PUMA -> COUNTY
 CREATE TABLE #geographicCWalk( [MAZ] INT
 	,[TAZ] INT
-	,[MAZ_ORIGINAL] INT
-	,[TAZ_ORIGINAL] INT
 	,[PUMA] INT
 	,[COUNTYFP] INT
 	,[MTCCountyID] INT
@@ -125,14 +123,12 @@ PRINT 'Created raw tables...'
 --									CREATING MAZ CONTROL TABLE
 /*###################################################################################################*/
 --Creating MAZ Controls
-SELECT MAZ_ORIGINAL, HH
+SELECT MAZ, HH
 INTO control_totals_maz
 FROM #mazData
 
 ALTER TABLE control_totals_maz
-	ADD MAZ INT
-		,TAZ INT
-		,TAZ_ORIGINAL INT
+	ADD TAZ INT
 		,PUMA BIGINT
 		,COUNTYFP INT
 		,MTCCountyID INT
@@ -142,14 +138,13 @@ GO
 UPDATE control_totals_maz
 	SET MAZ = t1.MAZ
 		,TAZ = t1.TAZ
-		,TAZ_ORIGINAL = t1.TAZ_ORIGINAL
 		,PUMA = t1.PUMA
 		,COUNTYFP = t1.COUNTYFP
 		,MTCCountyID = t1.MTCCountyID
 		,COUNTYNAME = t1.COUNTYNAME
 	FROM (SELECT * FROM #geographicCWalk) AS t1, 
 		control_totals_maz t2
-	WHERE (t1.MAZ_ORIGINAL = t2.MAZ_ORIGINAL)
+	WHERE (t1.MAZ = t2.MAZ)
 
 
 ALTER TABLE dbo.control_totals_maz 
@@ -180,7 +175,6 @@ PRINT 'Created MAZ controls...'
 SELECT t1.*, t2.HHINC1, t2.HHINC2, t2.HHINC3, t2.HHINC4
 INTO control_totals_taz 
 FROM (SELECT TAZ
-		, MAX(TAZ_ORIGINAL) AS TAZ_ORIGINAL
 		, MAX(PUMA) AS PUMA
 		, MAX(COUNTYFP) AS COUNTYFP
 		, MAX(MTCCountyID) AS MTCCountyID
@@ -188,7 +182,7 @@ FROM (SELECT TAZ
 		FROM control_totals_maz 
 		GROUP BY TAZ) t1
 LEFT JOIN (SELECT * FROM #tazData) t2
-ON (t1.TAZ_ORIGINAL = t2.TAZ_ORIGINAL)
+ON (t1.TAZ = t2.TAZ)
 
 ALTER TABLE dbo.control_totals_taz
 	ADD CONSTRAINT [PK dbo.control_totals_taz TAZ] 

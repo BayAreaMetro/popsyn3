@@ -19,8 +19,12 @@ IF OBJECT_ID('tempdb..#PUMALIST') IS NOT NULL
 	DROP TABLE #PUMALIST;
 IF OBJECT_ID('tempdb..#tempHH') IS NOT NULL 
 	DROP TABLE #tempHH;
+IF OBJECT_ID('dbo.tempHH') IS NOT NULL 
+	DROP TABLE dbo.tempHH;
 IF OBJECT_ID('tempdb..#tempPer') IS NOT NULL 
 	DROP TABLE #tempPer;
+IF OBJECT_ID('dbo.tempPer') IS NOT NULL 
+	DROP TABLE dbo.tempPer;
 IF OBJECT_ID('tempdb..#Numbers') IS NOT NULL 
 	DROP TABLE #Numbers;
 GO
@@ -490,8 +494,6 @@ PRINT 'Loaded raw PUMS datasets...'
 --Loading the geographic correspondence to get unique PUMA list
 CREATE TABLE #geographicCWalk( [MAZ] INT
 	,[TAZ] INT
-	,[MAZ_ORIGINAL] INT
-	,[TAZ_ORIGINAL] INT
 	,[PUMA] INT
 	,[COUNTYFP] INT
 	,[MTCCountyID] INT

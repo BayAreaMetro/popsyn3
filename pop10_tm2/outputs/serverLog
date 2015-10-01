@@ -1,0 +1,35 @@
+
+(1 rows affected)
+
+(1 rows affected)
+
+(1 rows affected)
+
+(1 rows affected)
+
+(1 rows affected)
+
+(1 rows affected)
+
+(1 rows affected)
+Loaded raw PUMS datasets...
+Completed processing seed household table...
+Completed processing seed person table...
+Created seed tables for general population...
+Finished rebuilding indexes...
+Seed table creation complete!
+Created raw tables...
+Created MAZ controls...
+Created TAZ controls...
+Created META controls...
+Control table creation complete!
+
+(39785 rows affected)
+
+(4688 rows affected)
+
+(9 rows affected)
+
+(7151871 rows affected)
+
+(2608016 rows affected)
