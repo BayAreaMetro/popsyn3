@@ -1,0 +1,315 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<targets>
+  <database>
+    <server>LUMODEL\LU_MSSQL</server>
+    <type>MS_SQL</type>
+    <!--<user></user>-->
+    <password></password>
+    <dbName>popsyn3_pop10_us2</dbName>
+  </database>
+
+  <!-- Specify the PUMS data table names from which PUMA incidence tables are generated, as well as the field name for a unique identifier and the PUMS weight field name -->
+  <pumsData>
+    <idField>hhnum</idField>
+    <pumaFieldName>PUMA</pumaFieldName>
+    <metaFieldName>MTCCountyID</metaFieldName>
+    <tazFieldName>TAZ</tazFieldName>
+    <mazFieldName>MAZ</mazFieldName>
+    <weightField>WGTP</weightField>
+    <hhTable>hhtable</hhTable>
+    <persTable>perstable</persTable>
+    <pumsHhTable>hhtable</pumsHhTable>
+    <pumsHhIdField>hhnum</pumsHhIdField>
+    <pumsPersTable>perstable</pumsPersTable>
+    <maxExpansionFactor>5</maxExpansionFactor>
+    <synpopOutputHhTableName>synpop_hh</synpopOutputHhTableName>
+    <synpopOutputPersTableName>synpop_person</synpopOutputPersTableName>
+    <outputHhAttributes>serialno, np, hincp, ten, bld, nwrkrs_esr, hhincAdj, adjinc, veh, hht, type, npf, hupac</outputHhAttributes>
+    <outputPersAttributes>sporder, agep, sex, occp, wkhp, esr, schg, employed, wkw, mil, schl, indp02, indp07, occp02, occp10</outputPersAttributes>
+  </pumsData>
+
+  <!-- Specify the table name and name of id field for the MAZ control totals table -->
+  <mazControlsTable>
+    <mazTable id="1">
+      <table_name>control_totals_maz</table_name>
+      <id_field_name>MAZ</id_field_name>
+      <aggregation_level>MAZ</aggregation_level>
+    </mazTable>
+  </mazControlsTable>
+
+  <!-- Specify the table name and name of id field for the table of TAZ control totals that are not fields in the MAZ control total table -->
+  <tazControlsTable>
+    <tazTable id="1">
+      <table_name>control_totals_taz</table_name>
+      <id_field_name>TAZ</id_field_name>
+      <aggregation_level>TAZ</aggregation_level>
+    </tazTable>
+  </tazControlsTable>
+
+  <!-- Specify the table name, id field name, and aggregation level for each table of META control totals -->
+  <metaControlsTables>
+    <metaTable id="1">
+      <table_name>control_totals_meta</table_name>
+      <id_field_name>MTCCountyID</id_field_name>
+      <aggregation_level>PUMA</aggregation_level>
+    </metaTable>
+  </metaControlsTables>
+
+  <target>
+    <!-- Total households in each MAZ Control#0 -->
+    <marginals>
+      <id>0</id>
+      <description>MAZ Level Control: Total Number of Households</description>
+      <totalHouseholdsControl>true</totalHouseholdsControl>
+      <controlType>simple</controlType>
+      <geographyType>MAZ</geographyType>
+      <table>hhtable</table>
+      <constraint id="1">
+        <importance>1000000000</importance>
+        <field>WGTP</field>
+        <controlField>HH</controlField>
+        <type>interval</type>
+        <lo_value>0</lo_value>
+        <lo_type>open</lo_type>
+        <hi_value>infinity</hi_value>
+        <hi_type>open</hi_type>
+      </constraint>
+    </marginals>
+  </target>
+
+   <target>
+    <!-- Define conditions for 4 household income category constraints for households  Control#1 -->
+    <!-- Four categories in 2010$s: (-Inf,30k),[30k,60k),[60k,100k),[100k,+Inf) -->
+    <marginals>
+      <id>1</id>
+      <description>TAZ Level Control: Number of Households by Household Income</description>
+      <geographyType>TAZ</geographyType>
+      <controlType>simple</controlType>
+      <table>hhtable</table>
+      <constraint id="1">
+        <importance>1000</importance>
+        <field>hhincAdj</field>
+        <controlField>HHINC1</controlField>
+        <type>interval</type>
+        <lo_value>-999999999</lo_value>
+        <lo_type>closed</lo_type>
+        <hi_value>30000</hi_value>
+        <hi_type>open</hi_type>
+      </constraint>
+      <constraint id="2">
+        <importance>1000</importance>
+        <field>hhincAdj</field>
+        <controlField>HHINC2</controlField>
+        <type>interval</type>
+        <lo_value>30000</lo_value>
+        <lo_type>closed</lo_type>
+        <hi_value>60000</hi_value>
+        <hi_type>open</hi_type>
+      </constraint>
+      <constraint id="3">
+        <importance>1000</importance>
+        <field>hhincAdj</field>
+        <controlField>HHINC3</controlField>
+        <type>interval</type>
+        <lo_value>60000</lo_value>
+        <lo_type>closed</lo_type>
+        <hi_value>100000</hi_value>
+        <hi_type>open</hi_type>
+      </constraint>
+       <constraint id="4">
+        <importance>1000</importance>
+        <field>hhincAdj</field>
+        <controlField>HHINC4</controlField>
+        <type>interval</type>
+        <lo_value>100000</lo_value>
+        <lo_type>closed</lo_type>
+        <hi_value>999999999</hi_value>
+        <hi_type>open</hi_type>
+      </constraint>  
+    </marginals>
+  </target>
+
+  <target>
+    <!-- Define conditions for households by household size Control#2 -->
+    <!-- Four categories: 1,2,3,4+ Sized HH -->
+    <marginals>
+      <id>2</id>
+      <description>County Level META Control: Number of Households by Persons per Households</description>
+      <geographyType>META</geographyType>
+      <controlType>simple</controlType>
+      <table>hhtable</table>
+      <constraint id="1">
+        <importance>1000</importance>
+        <field>NP</field>
+        <controlField>HHSIZE1</controlField>
+        <type>equality</type>
+        <value>1</value>
+      </constraint>
+      <constraint id="2">
+        <importance>1000</importance>
+        <field>NP</field>
+        <controlField>HHSIZE2</controlField>
+        <type>equality</type>
+        <value>2</value>
+      </constraint>
+      <constraint id="3">
+        <importance>1000</importance>
+        <field>NP</field>
+        <controlField>HHSIZE3</controlField>
+        <type>equality</type>
+        <value>3</value>
+      </constraint>
+      <constraint id="4">
+        <importance>1000</importance>
+        <field>NP</field>
+        <controlField>HHSIZE4PLUS</controlField>
+        <type>interval</type>
+        <lo_value>4</lo_value>
+        <lo_type>closed</lo_type>
+        <hi_value>infinity</hi_value>
+        <hi_type>open</hi_type>
+      </constraint>
+    </marginals>
+  </target>
+
+  <target>
+    <!-- Define conditions for households by number of workers in household Control#3 -->
+    <!-- Four categories: 0,1,2,3+ worker HH -->
+    <marginals>
+      <id>3</id>
+      <description>County Level META Control: Number of Households by number of workers</description>
+      <geographyType>META</geographyType>
+      <controlType>simple</controlType>
+      <table>hhtable</table>
+      <constraint id="1">
+        <importance>1000</importance>
+        <field>nwrkrs_esr</field>
+        <controlField>HHWORK0</controlField>
+        <type>equality</type>
+        <value>0</value>
+      </constraint>
+      <constraint id="2">
+        <importance>1000</importance>
+        <field>nwrkrs_esr</field>
+        <controlField>HHWORK1</controlField>
+        <type>equality</type>
+        <value>1</value>
+      </constraint>
+      <constraint id="3">
+        <importance>1000</importance>
+        <field>nwrkrs_esr</field>
+        <controlField>HHWORK2</controlField>
+        <type>equality</type>
+        <value>2</value>
+      </constraint>
+      <constraint id="4">
+        <importance>1000</importance>
+        <field>nwrkrs_esr</field>
+        <controlField>HHWORK3PLUS</controlField>
+        <type>interval</type>
+        <lo_value>3</lo_value>
+        <lo_type>closed</lo_type>
+        <hi_value>infinity</hi_value>
+        <hi_type>open</hi_type>
+      </constraint>
+    </marginals>
+  </target>
+
+   <target>
+    <!-- Define conditions for person age categories Control#4 -->
+    <!-- Three categories: 0 to 18; 19 to 64; 65+ -->
+    <marginals>
+      <id>4</id>
+      <description>County Level META Control: Number of persons by age group</description>
+      <geographyType>META</geographyType>
+      <controlType>COUNT</controlType>
+      <table>perstable</table>
+      <constraint id="1">
+        <importance>1000</importance>
+        <field>AGEP</field>
+        <controlField>AGE0018</controlField>
+        <type>interval</type>
+        <lo_value>0</lo_value>
+        <lo_type>closed</lo_type>
+        <hi_value>18</hi_value>
+        <hi_type>closed</hi_type>
+      </constraint>
+      <constraint id="2">
+        <importance>1000</importance>
+        <field>AGEP</field>
+        <controlField>AGE1964</controlField>
+        <type>interval</type>
+        <lo_value>19</lo_value>
+        <lo_type>closed</lo_type>
+        <hi_value>64</hi_value>
+        <hi_type>closed</hi_type>
+      </constraint>
+      <constraint id="3">
+        <importance>1000</importance>
+        <field>AGEP</field>
+        <controlField>AGE65PLUS</controlField>
+        <type>interval</type>
+        <lo_value>65</lo_value>
+        <lo_type>closed</lo_type>
+        <hi_value>999999999</hi_value>
+        <hi_type>closed</hi_type>
+      </constraint>
+    </marginals>
+  </target>
+
+  <target>
+    <!-- Define conditions for person occupation categories Control#5 -->
+    <!-- Six categories: Management, Professional, Services, Retail, Manual, Military -->
+    <marginals>
+      <id>5</id>
+      <description>County Level META Control: Number of persons by occupation category</description>
+      <geographyType>META</geographyType>
+      <controlType>COUNT</controlType>
+      <table>perstable</table>
+      <constraint id="1">
+        <importance>1000</importance>
+        <field>occp</field>
+        <controlField>OCCP_Management</controlField>
+        <type>equality</type>
+        <value>1</value>
+      </constraint>
+      <constraint id="2">
+        <importance>1000</importance>
+        <field>occp</field>
+        <controlField>OCCP_Professional</controlField>
+        <type>equality</type>
+        <value>2</value>
+      </constraint>
+      <constraint id="3">
+        <importance>1000</importance>
+        <field>occp</field>
+        <controlField>OCCP_Services</controlField>
+        <type>equality</type>
+        <value>3</value>
+      </constraint>
+      <constraint id="4">
+        <importance>1000</importance>
+        <field>occp</field>
+        <controlField>OCCP_Retail</controlField>
+        <type>equality</type>
+        <value>4</value>
+      </constraint>
+      <constraint id="5">
+        <importance>1000</importance>
+        <field>occp</field>
+        <controlField>OCCP_Manual</controlField>
+        <type>equality</type>
+        <value>5</value>
+      </constraint>
+      <constraint id="6">
+        <importance>1000</importance>
+        <field>occp</field>
+        <controlField>OCCP_Military</controlField>
+        <type>equality</type>
+        <value>6</value>
+      </constraint>
+    </marginals>
+  </target>
+
+</targets>
