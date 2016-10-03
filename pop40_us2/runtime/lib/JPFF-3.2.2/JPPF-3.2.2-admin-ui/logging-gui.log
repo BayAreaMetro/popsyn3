@@ -1,1 +1,0 @@
-[2013/02/26 10:41:24.797][SEVERE ][ClientNotifForwarder.NotifFetcher-run()]: Failed to fetch notification, stopping thread. Error is: java.io.IOException: The connection has been closed.

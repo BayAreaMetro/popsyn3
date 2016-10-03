@@ -1,1 +1,0 @@
-Run summaryViews.sql first and then run popsyn_vis.R
