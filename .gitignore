@@ -4,3 +4,4 @@
 build/
 release/
 application/inputs/Prepare_Inputs_cache
+application/runtime/config/settings.xml
