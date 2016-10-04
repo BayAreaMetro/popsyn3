@@ -1,2 +1,6 @@
 .Rproj.user/
 .Rhistory
+.Rproj.user
+build/
+release/
+application/inputs/Prepare_Inputs_cache
