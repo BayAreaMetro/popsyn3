@@ -173,7 +173,7 @@ remove(county_names, to_join_meta)
 #### Prepare PUMS data
 ```{r prep-pums}
 # get list of relevant pums
-relevant_pumas <- unique(input_geog$PUMA5CE00)
+relevant_pumas <- unique(input_geog$PUMA)
 
 pums_hh  <- input_pums_hh[input_pums_hh$PUMA %in% relevant_pumas,]
 pums_per <- input_pums_per[input_pums_per$PUMA %in% relevant_pumas,]
