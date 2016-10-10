@@ -1,0 +1,159 @@
+---
+title: "Consume Outputs"
+author: "David Ory"
+output: 
+  html_document:
+    theme: cosmo
+    toc: yes
+---
+
+
+## Administration
+
+#### Purpose
+Consumes outputs from the Population Synthesizer. These procedures replace previous procedures done in SQL. A PUMS data dictionary is available [here](http://www2.census.gov/programs-surveys/acs/tech_docs/pums/data_dict/PUMSDataDict13.pdf).   
+
+#### Outputs
+1.  TBD
+
+#### TODO
+1. Everything, early days
+
+## Procedure
+
+#### Overhead
+```{r overhead, results = 'hide'}
+library(knitr)
+suppressMessages(library(dplyr))
+library(stringr)
+suppressMessages(library(RMySQL))
+suppressMessages(library(hydroGOF))
+library(reshape2)
+```
+
+```{r config, include=FALSE}
+knitr::opts_chunk$set(cache=TRUE)
+```
+
+#### Paramaters
+```{r parameters}
+MYSQL_SERVER    = "localhost"
+MYSQL_DATABASE  = "pop_syn"
+MYSQL_USER_NAME = "root" 
+
+YEAR = "year_2010"
+
+HH_INCOME_QUARTILE_THRESH_1 = 30000
+HH_INCOME_QUARTILE_THRESH_2 = 60000
+HH_INCOME_QUARTILE_THRESH_3 = 100000
+```
+
+#### Remote file locations
+```{r remote-dir}
+MYSQL_PASSWORD_FILE <- "C:/Users/dory/Desktop/mysql.csv"
+
+```
+
+#### Data reads
+```{r data-reads}
+# get password
+mysql_passes <- read.csv(MYSQL_PASSWORD_FILE, header = TRUE)
+
+mysql_passes <- mysql_passes %>%
+  filter(user == MYSQL_USER_NAME) %>%
+  mutate(pwd = paste(pwd))
+
+# connection
+mysql_connection <- dbConnect(MySQL(), user = MYSQL_USER_NAME, password = mysql_passes$pwd, host = MYSQL_SERVER, dbname = MYSQL_DATABASE)
+
+# read the hh table
+household_df <- dbReadTable(conn = mysql_connection, name = 'synpop_hh')
+person_df <- dbReadTable(conn = mysql_connection, name = 'synpop_person')
+
+```
+
+#### Validation exercise #1: how closely do we match the controls?
+```{r validate-controls}
+maz_controls <-    dbReadTable(conn = mysql_connection, name = 'control_totals_maz')
+taz_controls <-    dbReadTable(conn = mysql_connection, name = 'control_totals_taz')
+county_controls <- dbReadTable(conn = mysql_connection, name = 'control_totals_meta')
+
+dbDisconnect(mysql_connection)
+
+# step 1: maz controls
+maz_synthezised <- household_df %>%
+  group_by(maz) %>%
+  summarise(synthesized_households = sum(finalweight))
+
+maz_validation <- maz_controls %>%
+  select(maz, control_households = households)
+
+maz_validation <- left_join(maz_validation, maz_synthezised, by = c("maz"))
+
+maz_validation <- maz_validation %>%
+  mutate(synthesized_households = ifelse(is.na(synthesized_households), 0L, synthesized_households))
+
+maz_rmse <- rmse(maz_validation$synthesized_households, maz_validation$control_households, na.rm = FALSE)
+
+# put results in validation data frame
+control_name <- c('Households')
+geography <- c('MAZ')
+count <- nrow(maz_validation)
+control_quantity <- sum(maz_validation$control_households)
+synthesized_quantity <- sum(maz_validation$synthesized_households)
+root_mean_square_error <- maz_rmse
+validation_df <- data.frame(control_name, geography, count, control_quantity, synthesized_quantity, root_mean_square_error) 
+  
+# START HERE: make sure this is working
+# step 2: taz controls
+taz_synthesized <- household_df %>%
+  mutate(income_quartile = 0L) %>%
+  mutate(income_quartile = ifelse(hh_income_2010 < HH_INCOME_QUARTILE_THRESH_1, 1L, income_quartile)) %>%
+  mutate(income_quartile = ifelse(hh_income_2010 >= HH_INCOME_QUARTILE_THRESH_1 & hh_income_2010 < HH_INCOME_QUARTILE_THRESH_2, 2L, income_quartile)) %>%
+  mutate(income_quartile = ifelse(hh_income_2010 >= HH_INCOME_QUARTILE_THRESH_2 & hh_income_2010 < HH_INCOME_QUARTILE_THRESH_3, 3L, income_quartile)) %>%
+  mutate(income_quartile = ifelse(hh_income_2010 >= HH_INCOME_QUARTILE_THRESH_3, 4L, income_quartile)) %>%
+  group_by(taz, income_quartile) %>%
+  summarise(synthesized_households = sum(finalweight))
+
+taz_validation <- taz_controls %>%
+  select(taz, one = hh_income_quartile_1, two = hh_income_quartile_2, three = hh_income_quartile_3, four = hh_income_quartile_4)
+
+taz_validation <- melt(taz_validation, id = c("taz"), variable.name = "income_quartile", value.name = "control_households")
+
+taz_validation <- taz_validation %>%
+  mutate(income_quartile = ifelse(income_quartile == "one",   1L, income_quartile)) %>%
+  mutate(income_quartile = ifelse(income_quartile == "two",   2L, income_quartile)) %>%
+  mutate(income_quartile = ifelse(income_quartile == "three", 3L, income_quartile)) %>%
+  mutate(income_quartile = ifelse(income_quartile == "four",  4L, income_quartile))
+
+taz_validation <- left_join(taz_validation, taz_synthesized, by = c("taz", "income_quartile"))
+
+taz_validation <- taz_validation %>%
+  mutate(synthesized_households = ifelse(is.na(synthesized_households), 0L, synthesized_households)) %>%
+  mutate(control_households     = ifelse(is.na(control_households),     0L, control_households))
+
+# one entry per hh income quartile
+for (working_income_quartile in 1:4) {
+  
+  working_df <- taz_validation %>%
+    filter(income_quartile == working_income_quartile)
+  
+  append_df <- data.frame(control_name = c(paste('Households in Income Quartile',working_income_quartile, sep = ' ')),
+                          geography = c('TAZ'),
+                          count = nrow(working_df),
+                          control_quantity = sum(working_df$control_households),
+                          synthesized_quantity = sum(working_df$synthesized_households),
+                          root_mean_square_error = rmse(as.numeric(working_df$synthesized_households), as.numeric(working_df$control_households), na.rm = FALSE))
+  
+  validation_df <- rbind(validation_df, append_df)
+}
+
+
+
+```
+
+#### Validation exercise #2: how closely do we match variables we did not control for (e.g., person type, family structures)?
+#### Validation exercise #3: how well does the scheme perform in a backcast?
+
+
+

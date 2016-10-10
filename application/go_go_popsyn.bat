@@ -22,11 +22,12 @@ copy /B %cred_dir%\mysql_credentials.xml+%set_dir%\settings_no_credentials.xml %
 :: step 03: execute java
 echo %Time%
 echo Running population synthesizer...
-set JAVA_64_PATH=C:\Progra~1\Java\jre7
+set JAVA_64_PATH=C:\Progra~1\Java\jre1.8.0_101
 set CLASSPATH=runtime\config
 set CLASSPATH=%CLASSPATH%;runtime\*
 set CLASSPATH=%CLASSPATH%;runtime\lib\*
 set CLASSPATH=%CLASSPATH%;runtime\lib\JPFF-3.2.2\JPPF-3.2.2-admin-ui\lib\*
+set CLASSPATH=%CLASSPATH%;M:\Development\Travel Model Two\Source\cmf\common-base\release
 set LIBPATH=runtime\lib
 
 %JAVA_64_PATH%\bin\java -showversion -server -Xms8000m -Xmx12000m -cp "%CLASSPATH%" -Djppf.config=jppf-clientLocal.properties -Djava.library.path=%LIBPATH% popGenerator.PopGenerator runtime/config/settings.xml 
@@ -36,8 +37,5 @@ echo %Time%
 
 del %set_dir%\settings.xml
 
-:: BUG: INSERT INTO hhIds ( MTCCountyID, PUMA, WGTP, taz, maz, finalPumsId, finalweight ) VALUES
-::
-:: so the creation of the table and the command seem fine -- so it's unclear what to do. Perhaps have lisa debug the thing
 
 
