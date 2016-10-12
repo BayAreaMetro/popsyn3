@@ -1,12 +1,14 @@
 :: START HERE
 :: TODO (in roughly this order):
-:: 3. once this is done, go ahead and check things in to GitHub
-:: 3. try and track down the bug when data is written to the database
-:: 4. change variable names in inputs and database, changing the settings in the pop syn along the way
-:: 5. right a script to bring the output into R and to do validation summaries in R
-:: 6. experiment with JPPF settings to explore run-time improvements
-:: 7. so get ready to run 2000, 2005, and 2010 with Mike's best inputs 
-:: 8. 
+:: 1. get the validation output up and running
+:: 2. change maz/taz and maz_original/taz_original to maz_consecutive and maz_model? 
+:: 3. experiment with JPPF settings to explore run-time improvements (note num threads *appears* to be fixed in PopGenerator class)
+:: 4. any mysql optimization that can improve runtime? (lisa task?)
+:: 5. do a few source checks on the controls, perhaps scripting the construction
+:: 6. add mag thank you to readme 
+:: 7. get base runs for 2000 (and 2005) 
+:: 8. explore impact of different sets of controls (2000 PUMS to 2010 forecast and 2010 PUMS to 2000 forecast)
+:: 9. using 2000 PUMS may require new geography crosswalk (check with shimon on this)
 
 
 :: ms-dos batch file to run the population synthesizer

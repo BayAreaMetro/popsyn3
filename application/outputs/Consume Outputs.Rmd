@@ -96,6 +96,7 @@ maz_validation <- maz_validation %>%
 maz_rmse <- rmse(maz_validation$synthesized_households, maz_validation$control_households, na.rm = FALSE)
 
 # put results in validation data frame
+# TODO: is this the best way?
 control_name <- c('Households')
 geography <- c('MAZ')
 count <- nrow(maz_validation)
