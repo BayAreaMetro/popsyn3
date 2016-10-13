@@ -51,7 +51,7 @@ HH_INCOME_QUARTILE_THRESH_3 = 100000
 #### Remote file locations
 ```{r remote-dir}
 MYSQL_PASSWORD_FILE <- "C:/Users/dory/Desktop/mysql.csv"
-
+F_OUTPUT <- paste("~/GitHub/popsyn3/validation/", YEAR, ".csv", sep = "")
 ```
 
 #### Data reads
@@ -70,43 +70,50 @@ mysql_connection <- dbConnect(MySQL(), user = MYSQL_USER_NAME, password = mysql_
 household_df <- dbReadTable(conn = mysql_connection, name = 'synpop_hh')
 person_df <- dbReadTable(conn = mysql_connection, name = 'synpop_person')
 
-```
-
-#### Validation exercise #1: how closely do we match the controls?
-```{r validate-controls}
+# read in the controls for validation
 maz_controls <-    dbReadTable(conn = mysql_connection, name = 'control_totals_maz')
 taz_controls <-    dbReadTable(conn = mysql_connection, name = 'control_totals_taz')
 county_controls <- dbReadTable(conn = mysql_connection, name = 'control_totals_meta')
 
 dbDisconnect(mysql_connection)
 
-# step 1: maz controls
+```
+
+#### MAZ for Controlled Measures
+```{r maz-controls}
+# maz controls: households
+maz_validation <- maz_controls %>%
+  select(maz, control_households = households) %>%
+  mutate(measure = "households")
+
 maz_synthezised <- household_df %>%
   group_by(maz) %>%
   summarise(synthesized_households = sum(finalweight))
 
-maz_validation <- maz_controls %>%
-  select(maz, control_households = households)
-
 maz_validation <- left_join(maz_validation, maz_synthezised, by = c("maz"))
 
+# standardize variables to combine across geographies
 maz_validation <- maz_validation %>%
-  mutate(synthesized_households = ifelse(is.na(synthesized_households), 0L, synthesized_households))
+  rename(geography_index = maz) %>%
+  mutate(geography = "maz") %>%
+  mutate(control_persons = NA) %>%
+  mutate(synthesized_persons = NA) %>%
+  mutate(measure_category = "Households")
 
-maz_rmse <- rmse(maz_validation$synthesized_households, maz_validation$control_households, na.rm = FALSE)
+remove(maz_synthezised)
 
-# put results in validation data frame
-# TODO: is this the best way?
-control_name <- c('Households')
-geography <- c('MAZ')
-count <- nrow(maz_validation)
-control_quantity <- sum(maz_validation$control_households)
-synthesized_quantity <- sum(maz_validation$synthesized_households)
-root_mean_square_error <- maz_rmse
-validation_df <- data.frame(control_name, geography, count, control_quantity, synthesized_quantity, root_mean_square_error) 
-  
-# START HERE: make sure this is working
-# step 2: taz controls
+```
+
+#### TAZ for Controlled Measures
+```{r taz-controls}
+taz_validation <- taz_controls %>%
+  select(taz, hh_income_quartile_1, hh_income_quartile_2, hh_income_quartile_3, hh_income_quartile_4)
+
+taz_validation <- melt(taz_validation, id = c("taz"), variable.name = "measure", value.name = "control_households")
+
+taz_validation <- taz_validation %>%
+  mutate(measure = paste(measure))
+
 taz_synthesized <- household_df %>%
   mutate(income_quartile = 0L) %>%
   mutate(income_quartile = ifelse(hh_income_2010 < HH_INCOME_QUARTILE_THRESH_1, 1L, income_quartile)) %>%
@@ -114,47 +121,114 @@ taz_synthesized <- household_df %>%
   mutate(income_quartile = ifelse(hh_income_2010 >= HH_INCOME_QUARTILE_THRESH_2 & hh_income_2010 < HH_INCOME_QUARTILE_THRESH_3, 3L, income_quartile)) %>%
   mutate(income_quartile = ifelse(hh_income_2010 >= HH_INCOME_QUARTILE_THRESH_3, 4L, income_quartile)) %>%
   group_by(taz, income_quartile) %>%
-  summarise(synthesized_households = sum(finalweight))
+  summarise(synthesized_households = sum(finalweight)) %>%
+  mutate(measure = paste("hh_income_quartile", income_quartile, sep = "_")) %>%
+  select(-income_quartile)
 
-taz_validation <- taz_controls %>%
-  select(taz, one = hh_income_quartile_1, two = hh_income_quartile_2, three = hh_income_quartile_3, four = hh_income_quartile_4)
+taz_validation <- left_join(taz_validation, taz_synthesized, by = c("taz", "measure"))  
 
-taz_validation <- melt(taz_validation, id = c("taz"), variable.name = "income_quartile", value.name = "control_households")
-
+# standardize variables to combine across geographies
 taz_validation <- taz_validation %>%
-  mutate(income_quartile = ifelse(income_quartile == "one",   1L, income_quartile)) %>%
-  mutate(income_quartile = ifelse(income_quartile == "two",   2L, income_quartile)) %>%
-  mutate(income_quartile = ifelse(income_quartile == "three", 3L, income_quartile)) %>%
-  mutate(income_quartile = ifelse(income_quartile == "four",  4L, income_quartile))
+  rename(geography_index = taz) %>%
+  mutate(geography = "taz") %>%
+  mutate(control_persons = NA) %>%
+  mutate(synthesized_persons = NA) %>%
+  mutate(measure_category = "Households by Income")
 
-taz_validation <- left_join(taz_validation, taz_synthesized, by = c("taz", "income_quartile"))
-
-taz_validation <- taz_validation %>%
-  mutate(synthesized_households = ifelse(is.na(synthesized_households), 0L, synthesized_households)) %>%
-  mutate(control_households     = ifelse(is.na(control_households),     0L, control_households))
-
-# one entry per hh income quartile
-for (working_income_quartile in 1:4) {
-  
-  working_df <- taz_validation %>%
-    filter(income_quartile == working_income_quartile)
-  
-  append_df <- data.frame(control_name = c(paste('Households in Income Quartile',working_income_quartile, sep = ' ')),
-                          geography = c('TAZ'),
-                          count = nrow(working_df),
-                          control_quantity = sum(working_df$control_households),
-                          synthesized_quantity = sum(working_df$synthesized_households),
-                          root_mean_square_error = rmse(as.numeric(working_df$synthesized_households), as.numeric(working_df$control_households), na.rm = FALSE))
-  
-  validation_df <- rbind(validation_df, append_df)
-}
-
-
+remove(taz_synthesized)
 
 ```
 
-#### Validation exercise #2: how closely do we match variables we did not control for (e.g., person type, family structures)?
-#### Validation exercise #3: how well does the scheme perform in a backcast?
+#### County for Controlled Measures
+```{r county-controls}
+# county controls: household size, household workers, age category, occupation category
+county_validation <- melt(county_controls, id = c("county_name", "mtc_county_id"), variable.name = "measure", value.name = "households_or_persons")
 
+county_validation <- county_validation %>%
+  mutate(measure = paste(measure))
 
+# household size
+county_synthesized <- household_df %>%
+  group_by(mtc_county_id, np) %>%
+  summarise(synthesized_households = sum(finalweight)) %>%
+  mutate(measure = "ERROR") %>%
+  mutate(measure = ifelse(np == 1, "hh_size_1", measure)) %>%
+  mutate(measure = ifelse(np == 2, "hh_size_2", measure)) %>%
+  mutate(measure = ifelse(np == 3, "hh_size_3", measure)) %>%
+  mutate(measure = ifelse(np > 3,  "hh_size_4_plus", measure)) %>%
+  group_by(mtc_county_id, measure) %>%
+  summarise(synthesized_households = sum(synthesized_households)) %>%
+  mutate(measure_category_household = "Households by Number of People")
+
+# household workers
+working <- household_df %>%
+  group_by(mtc_county_id, hh_workers_from_esr) %>%
+  summarise(synthesized_households = sum(finalweight)) %>%
+  mutate(measure = "ERROR") %>%
+  mutate(measure = ifelse(hh_workers_from_esr == 0, "hh_workers_0", measure)) %>%
+  mutate(measure = ifelse(hh_workers_from_esr == 1, "hh_workers_1", measure)) %>%
+  mutate(measure = ifelse(hh_workers_from_esr == 2, "hh_workers_2", measure)) %>%
+  mutate(measure = ifelse(hh_workers_from_esr > 2,  "hh_workers_3_plus", measure)) %>%
+  group_by(mtc_county_id, measure) %>%
+  summarise(synthesized_households = sum(synthesized_households)) %>%
+  mutate(measure_category_household = "Households by Number of Workers")
+
+county_synthesized <- rbind(county_synthesized, working)
+
+# done with household level --> join
+county_validation <- left_join(county_validation, county_synthesized, by = c("mtc_county_id", "measure"))
+
+# persons by age category
+county_synthesized <- person_df %>%
+  group_by(mtc_county_id, agep) %>%
+  summarise(synthesized_persons = sum(finalweight)) %>%
+  mutate(measure = "ERROR") %>%
+  mutate(measure = ifelse(agep <= 18, "age_00_18", measure)) %>%
+  mutate(measure = ifelse(agep >= 19 & agep < 65, "age_19_64", measure)) %>%
+  mutate(measure = ifelse(agep >= 65, "age_65_up", measure)) %>%
+  group_by(mtc_county_id, measure) %>%
+  summarise(synthesized_persons = sum(synthesized_persons)) %>%
+  mutate(measure_category_person = "Persons by Age Category")
+
+# persons by occupation
+working <- person_df %>%
+  group_by(mtc_county_id, occupation) %>%
+  summarise(synthesized_persons = sum(finalweight)) %>%
+  mutate(measure = "ERROR") %>%
+  mutate(measure = ifelse(occupation == 1, "occupation_management", measure)) %>%
+  mutate(measure = ifelse(occupation == 2, "occupation_professional", measure)) %>%
+  mutate(measure = ifelse(occupation == 3, "occupation_services", measure)) %>%
+  mutate(measure = ifelse(occupation == 4, "occupation_retail", measure)) %>%
+  mutate(measure = ifelse(occupation == 5, "occupation_manual", measure)) %>%
+  mutate(measure = ifelse(occupation == 6, "occupation_military", measure)) %>%
+  group_by(mtc_county_id, measure) %>%
+  summarise(synthesized_persons = sum(synthesized_persons)) %>%
+  mutate(measure_category_person = "Persons by Occupation")
+
+county_synthesized <- rbind(county_synthesized, working)
+
+county_validation <- left_join(county_validation, county_synthesized, by = c("mtc_county_id", "measure"))
+
+# standardize variables to combine across geographies
+county_validation <- county_validation %>%
+  rename(geography_index = mtc_county_id) %>%
+  select(-county_name) %>%
+  mutate(geography = "county") %>%
+  mutate(control_households = ifelse(!is.na(synthesized_households), households_or_persons, NA)) %>%
+  mutate(control_persons    = ifelse(!is.na(synthesized_persons),    households_or_persons, NA)) %>%
+  mutate(measure_category   = ifelse(!is.na(synthesized_persons),    measure_category_person, measure_category_household)) %>%
+  select(-households_or_persons, -measure_category_person, -measure_category_household)
+           
+
+remove(working, county_synthesized)
+              
+```
+
+#### Write to disk
+```{r data-writes}
+validation_output <- rbind(maz_validation, taz_validation, county_validation)
+write.csv(validation_output, file = F_OUTPUT, row.names = FALSE, quote = F)
+```
+
+# DEBUG
 
