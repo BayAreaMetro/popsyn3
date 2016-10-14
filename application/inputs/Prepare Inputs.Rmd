@@ -21,6 +21,7 @@ Prepares inputs for the Population Synthesizer. These procedures replace previou
 1. Everything, early days
 2. See all the inline TODOs
 3. Re-build the controls from census data, use scripts and apis
+4. Give the controls year specific names in MySQL and then the configuration scripts
 
 ## Procedure
 
@@ -241,13 +242,13 @@ mysql_passes <- mysql_passes %>%
 mysql_connection <- dbConnect(MySQL(), user = MYSQL_USER_NAME, password = mysql_passes$pwd, host = MYSQL_SERVER, dbname = MYSQL_DATABASE)
 
 # write the control tables
-dbWriteTable(conn = mysql_connection, name = 'control_totals_maz',  value = as.data.frame(control_totals_maz),  overwrite = TRUE)
-dbWriteTable(conn = mysql_connection, name = 'control_totals_taz',  value = as.data.frame(control_totals_taz),  overwrite = TRUE)
-dbWriteTable(conn = mysql_connection, name = 'control_totals_meta', value = as.data.frame(control_totals_meta), overwrite = TRUE)
+dbWriteTable(conn = mysql_connection, name = paste('control_totals_maz',  YEAR, sep = '_'), value = as.data.frame(control_totals_maz),  overwrite = TRUE)
+dbWriteTable(conn = mysql_connection, name = paste('control_totals_taz',  YEAR, sep = '_'), value = as.data.frame(control_totals_taz),  overwrite = TRUE)
+dbWriteTable(conn = mysql_connection, name = paste('control_totals_meta', YEAR, sep = '_'), value = as.data.frame(control_totals_meta), overwrite = TRUE)
 
 # write the household and person tables
-dbWriteTable(conn = mysql_connection, name = 'household_table',   value = as.data.frame(pums_hh),  overwrite = TRUE)
-dbWriteTable(conn = mysql_connection, name = 'person_table', value = as.data.frame(pums_per), overwrite = TRUE)
+dbWriteTable(conn = mysql_connection, name = paste('household_table', YEAR, sep = '_'), value = as.data.frame(pums_hh),  overwrite = TRUE)
+dbWriteTable(conn = mysql_connection, name = paste('person_table', YEAR, sep = '_'),    value = as.data.frame(pums_per), overwrite = TRUE)
 
 dbDisconnect(mysql_connection)
 ```

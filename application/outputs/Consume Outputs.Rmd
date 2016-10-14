@@ -51,7 +51,7 @@ HH_INCOME_QUARTILE_THRESH_3 = 100000
 #### Remote file locations
 ```{r remote-dir}
 MYSQL_PASSWORD_FILE <- "C:/Users/dory/Desktop/mysql.csv"
-F_OUTPUT <- paste("~/GitHub/popsyn3/validation/", YEAR, ".csv", sep = "")
+F_OUTPUT <- paste("~/GitHub/popsyn3/application/validation/", YEAR, "_test_03.csv", sep = "")
 ```
 
 #### Data reads
@@ -67,13 +67,13 @@ mysql_passes <- mysql_passes %>%
 mysql_connection <- dbConnect(MySQL(), user = MYSQL_USER_NAME, password = mysql_passes$pwd, host = MYSQL_SERVER, dbname = MYSQL_DATABASE)
 
 # read the hh table
-household_df <- dbReadTable(conn = mysql_connection, name = 'synpop_hh')
-person_df <- dbReadTable(conn = mysql_connection, name = 'synpop_person')
+household_df <- dbReadTable(conn = mysql_connection, name = paste('synpop_hh', YEAR, sep = '_'))
+person_df <- dbReadTable(conn = mysql_connection, name = paste('synpop_person', YEAR, sep = '_'))
 
 # read in the controls for validation
-maz_controls <-    dbReadTable(conn = mysql_connection, name = 'control_totals_maz')
-taz_controls <-    dbReadTable(conn = mysql_connection, name = 'control_totals_taz')
-county_controls <- dbReadTable(conn = mysql_connection, name = 'control_totals_meta')
+maz_controls <-    dbReadTable(conn = mysql_connection, name = paste('control_totals_maz', YEAR, sep = '_'))
+taz_controls <-    dbReadTable(conn = mysql_connection, name = paste('control_totals_taz', YEAR, sep = '_'))
+county_controls <- dbReadTable(conn = mysql_connection, name = paste('control_totals_meta', YEAR, sep = '_'))
 
 dbDisconnect(mysql_connection)
 

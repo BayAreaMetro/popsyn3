@@ -5,7 +5,6 @@
 :: 3. experiment with JPPF settings to explore run-time improvements (note num threads *appears* to be fixed in PopGenerator class)
 :: 4. any mysql optimization that can improve runtime? (lisa task?)
 :: 5. do a few source checks on the controls, perhaps scripting the construction
-:: 6. add mag thank you to readme 
 :: 7. get base runs for 2000 (and 2005) 
 :: 8. explore impact of different sets of controls (2000 PUMS to 2010 forecast and 2010 PUMS to 2000 forecast)
 :: 9. using 2000 PUMS may require new geography crosswalk (check with shimon on this)
@@ -14,7 +13,7 @@
 :: ms-dos batch file to run the population synthesizer
 
 :: step 01: prepare the inputs
-:: TODO add call to R script as needed
+:: inputs are created by inputs/Prepare Inputs.Rmd
 
 :: step 02: build the settings.xml file
 set cred_dir=C:\Users\dory\Desktop
@@ -38,6 +37,9 @@ ECHO Population synthesis complete...
 echo %Time%
 
 del %set_dir%\settings.xml
+
+:: step 03: consume the output
+:: outputs are consumed by outputs/Consume Outputs.Rmd and presented in validation/Year XXXX Validation YYYY
 
 
 
