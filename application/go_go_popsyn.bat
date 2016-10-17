@@ -1,13 +1,14 @@
 :: START HERE
-:: TODO (in roughly this order):
-:: 1. get the validation output up and running
+:: TODO:
 :: 2. change maz/taz and maz_original/taz_original to maz_consecutive and maz_model? 
 :: 3. experiment with JPPF settings to explore run-time improvements (note num threads *appears* to be fixed in PopGenerator class)
 :: 4. any mysql optimization that can improve runtime? (lisa task?)
 :: 5. do a few source checks on the controls, perhaps scripting the construction
 :: 7. get base runs for 2000 (and 2005) 
 :: 8. explore impact of different sets of controls (2000 PUMS to 2010 forecast and 2010 PUMS to 2000 forecast)
-:: 9. using 2000 PUMS may require new geography crosswalk (check with shimon on this)
+:: 9. using 2000 PUMS may require new geography crosswalk (i do not think so as the 2007-2011 PUMS uses the 2000 geographies; will need to make the adjustment to income variable)
+:: 10. any benefit to combining the 2000 and 2007/11 pums into a single, large database, and then use it to build 2000 and 2010 syn pops? 
+:: 11. determine if I can re-create the previous validation results for any set of weights
 
 
 :: ms-dos batch file to run the population synthesizer

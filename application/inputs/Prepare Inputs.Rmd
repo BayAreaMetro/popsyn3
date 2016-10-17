@@ -11,17 +11,16 @@ output:
 ## Administration
 
 #### Purpose
-Prepares inputs for the Population Synthesizer. These procedures replace previous procedures done in SQL.  
+Prepares inputs for the Population Synthesizer. These procedures replace previous procedures done in SQL. Note the input geographies file use the 2000 Decennial Census PUMA boundaries, as do the five-year 2007 to 2011 PUMS data.  
 
 #### Outputs
-1.  Control tables (maz, taz, and county) written to MySQL database
-2.  Household and Person PUMS data written to MySQL database
+1.  Year-specific control tables (maz, taz, and county) written to MySQL database
+2.  Year-specific household and person PUMS data written to MySQL database
 
 #### TODO
-1. Everything, early days
-2. See all the inline TODOs
-3. Re-build the controls from census data, use scripts and apis
-4. Give the controls year specific names in MySQL and then the configuration scripts
+1. Check the dollar year in the control and read the documentation to make sure the PUMS conversion puts them in year 2010 dollars
+2. Re-build the controls from census data, use scripts and apis, check the dollar year for the TAZ controls
+3. Make the SOC to occupation relationship a table rather than a series of ifs
 
 ## Procedure
 
@@ -43,7 +42,13 @@ MYSQL_SERVER    = "localhost"
 MYSQL_DATABASE  = "pop_syn"
 MYSQL_USER_NAME = "root" 
 
-YEAR = "year_2010"
+# year of the PUMS data
+PUMS_YEAR = "2007_2011"
+
+# input data configured for 2000, 2005, and 2010
+# YEAR = "year_2000"
+YEAR = "year_2005"
+# YEAR = "year_2010"
 ```
 
 #### Remote file locations
@@ -81,7 +86,7 @@ input_pums_per <- read.csv(PUMS_PER_FILE, header = TRUE)
 ```{r prep-maz}
 control_totals_maz <- input_maz
 
-# TODO make puma name more generic?
+# the geographies file reminds us we are using the 2000 Census PUMAs
 input_geog <- input_geog %>%
   rename(PUMA = PUMA5CE00)
 
@@ -109,8 +114,6 @@ check_taz_geog <- taz_geog %>%
 control_totals_taz <- left_join(control_totals_taz, taz_geog, by = c("taz_original"))
 
 # bring in income
-# TODO verify what dollar year the TAZ controls are in
-# TODO ideally move the creation of the inputs from Census API into a script
 to_join_taz <- input_taz %>%
   select(taz_original, hh_income_quartile_1 = income_2010_0_30, hh_income_quartile_2 = income_2010_30_60, 
          hh_income_quartile_3 = income_2010_60_100, hh_income_quartile_4 = income_2010_100_up)
@@ -182,8 +185,7 @@ pums_hh <- left_join(pums_hh, num_workers, by = c("SERIALNO"))
 pums_hh <- pums_hh %>%
   mutate(hh_workers_from_esr = ifelse(is.na(hh_workers_from_esr), 0, hh_workers_from_esr))
 
-# put income in constant year dollars (TODO figure out where this came from, SQL says reported income * rolling reference factor * inflation adjustment)
-# TODO make sure this year dollars and TAZ controls align
+# put income in constant year dollars (SQL says reported income * rolling reference factor * inflation adjustment)
 pums_hh <- pums_hh %>%
   mutate(hh_income_2010 = 999) %>%
   mutate(hh_income_2010 = ifelse(ADJINC == 1102938, HINCP/1.0 * 1.016787 * 1.05156, hh_income_2010)) %>%
@@ -208,7 +210,6 @@ pums_per <- pums_per %>%
   mutate(employed = ifelse(ESR == 1 | ESR == 2 | ESR == 4 | ESR == 5, 1, 0L))
 
 # extract the occupation code
-# TODO make the SOC to occupation relationship a table
 pums_per <- pums_per %>%
   mutate(soc = str_trim(socp00, side = c("both"))) %>%
   mutate(soc = ifelse(soc == "N.A.//", str_trim(socp10, side = c("both")), soc)) %>%
@@ -247,8 +248,8 @@ dbWriteTable(conn = mysql_connection, name = paste('control_totals_taz',  YEAR, 
 dbWriteTable(conn = mysql_connection, name = paste('control_totals_meta', YEAR, sep = '_'), value = as.data.frame(control_totals_meta), overwrite = TRUE)
 
 # write the household and person tables
-dbWriteTable(conn = mysql_connection, name = paste('household_table', YEAR, sep = '_'), value = as.data.frame(pums_hh),  overwrite = TRUE)
-dbWriteTable(conn = mysql_connection, name = paste('person_table', YEAR, sep = '_'),    value = as.data.frame(pums_per), overwrite = TRUE)
+dbWriteTable(conn = mysql_connection, name = paste('household_table', PUMS_YEAR, sep = '_'), value = as.data.frame(pums_hh),  overwrite = TRUE)
+dbWriteTable(conn = mysql_connection, name = paste('person_table', PUMS_YEAR, sep = '_'),    value = as.data.frame(pums_per), overwrite = TRUE)
 
 dbDisconnect(mysql_connection)
 ```

@@ -14,10 +14,11 @@ output:
 Consumes outputs from the Population Synthesizer. These procedures replace previous procedures done in SQL. A PUMS data dictionary is available [here](http://www2.census.gov/programs-surveys/acs/tech_docs/pums/data_dict/PUMSDataDict13.pdf).   
 
 #### Outputs
-1.  TBD
+1.  Database to be used with Tableau (see `validation/Validation Test.twb` saved as `Year 20XX Validation Test YY.twb`)
 
 #### TODO
-1. Everything, early days
+1. Add non-control validation variables
+2. Non-control check brainstorm: age distribution (county), student status (region), part-time workers (county), race\ethnicity (county), sex (region)
 
 ## Procedure
 
@@ -41,7 +42,13 @@ MYSQL_SERVER    = "localhost"
 MYSQL_DATABASE  = "pop_syn"
 MYSQL_USER_NAME = "root" 
 
-YEAR = "year_2010"
+# simulation year
+YEAR = "year_2000"
+# YEAR = "year_2005"
+# YEAR = "year_2010"
+
+# year of pums source
+PUMS_YEAR = "2007_2011"
 
 HH_INCOME_QUARTILE_THRESH_1 = 30000
 HH_INCOME_QUARTILE_THRESH_2 = 60000
@@ -51,7 +58,7 @@ HH_INCOME_QUARTILE_THRESH_3 = 100000
 #### Remote file locations
 ```{r remote-dir}
 MYSQL_PASSWORD_FILE <- "C:/Users/dory/Desktop/mysql.csv"
-F_OUTPUT <- paste("~/GitHub/popsyn3/application/validation/", YEAR, "_test_03.csv", sep = "")
+F_OUTPUT <- paste("~/GitHub/popsyn3/application/validation/", YEAR, "_test_00.csv", sep = "")
 ```
 
 #### Data reads
@@ -66,7 +73,7 @@ mysql_passes <- mysql_passes %>%
 # connection
 mysql_connection <- dbConnect(MySQL(), user = MYSQL_USER_NAME, password = mysql_passes$pwd, host = MYSQL_SERVER, dbname = MYSQL_DATABASE)
 
-# read the hh table
+# read the synthetic population tables
 household_df <- dbReadTable(conn = mysql_connection, name = paste('synpop_hh', YEAR, sep = '_'))
 person_df <- dbReadTable(conn = mysql_connection, name = paste('synpop_person', YEAR, sep = '_'))
 
@@ -74,6 +81,10 @@ person_df <- dbReadTable(conn = mysql_connection, name = paste('synpop_person', 
 maz_controls <-    dbReadTable(conn = mysql_connection, name = paste('control_totals_maz', YEAR, sep = '_'))
 taz_controls <-    dbReadTable(conn = mysql_connection, name = paste('control_totals_taz', YEAR, sep = '_'))
 county_controls <- dbReadTable(conn = mysql_connection, name = paste('control_totals_meta', YEAR, sep = '_'))
+
+# read in the relevant PUMS data to build cross-validation summaries
+pums_household <- dbReadTable(conn = mysql_connection, name = paste('household_table', PUMS_YEAR, sep = '_'))
+pums_person    <- dbReadTable(conn = mysql_connection, name = paste('person_table', PUMS_YEAR, sep = '_'))
 
 dbDisconnect(mysql_connection)
 
@@ -98,6 +109,7 @@ maz_validation <- maz_validation %>%
   mutate(geography = "maz") %>%
   mutate(control_persons = NA) %>%
   mutate(synthesized_persons = NA) %>%
+  mutate(control_category = "controlled") %>%
   mutate(measure_category = "Households")
 
 remove(maz_synthezised)
@@ -133,6 +145,7 @@ taz_validation <- taz_validation %>%
   mutate(geography = "taz") %>%
   mutate(control_persons = NA) %>%
   mutate(synthesized_persons = NA) %>%
+  mutate(control_category = "controlled") %>%
   mutate(measure_category = "Households by Income")
 
 remove(taz_synthesized)
@@ -217,6 +230,7 @@ county_validation <- county_validation %>%
   mutate(control_households = ifelse(!is.na(synthesized_households), households_or_persons, NA)) %>%
   mutate(control_persons    = ifelse(!is.na(synthesized_persons),    households_or_persons, NA)) %>%
   mutate(measure_category   = ifelse(!is.na(synthesized_persons),    measure_category_person, measure_category_household)) %>%
+  mutate(control_category = "controlled") %>%
   select(-households_or_persons, -measure_category_person, -measure_category_household)
            
 
@@ -224,9 +238,99 @@ remove(working, county_synthesized)
               
 ```
 
+#### County for Uncontrolled Measures
+```{r county-uncontrolled}
+# build PUMA to county_id crosswalk
+puma_county_crosswalk <- maz_controls %>%
+  group_by(PUMA, mtc_county_id) %>%
+  summarise(count = n()) %>%
+  select(-count)
+
+# uncontrolled #1: age by year
+working <- pums_person %>%
+  select(PUMA, agep = AGEP, PWGTP) %>%
+  group_by(PUMA, agep) %>%
+  summarise(puma_persons = sum(PWGTP))
+
+working <- left_join(working, puma_county_crosswalk, by = c("PUMA"))
+
+working <- working %>%
+  group_by(mtc_county_id, agep) %>%
+  summarise(control_persons = sum(puma_persons)) %>%
+  ungroup()
+
+county_synthesized <- person_df %>%
+  group_by(mtc_county_id, agep) %>%
+  summarise(synthesized_persons = sum(finalweight)) %>%
+  mutate(measure = paste("age", agep, sep = "_")) %>%
+  mutate(measure_category = "Persons by Age") %>%
+  ungroup()
+
+working <- left_join(working, county_synthesized, by = c("mtc_county_id", "agep"))
+
+county_cross_validation <- working %>%
+  select(-agep)
+
+# uncontrolled #2: race & ethnicity
+working <- pums_person %>%
+  select(PUMA, rac1p = RAC1P, hisp = HISP, PWGTP) %>%
+  group_by(PUMA, rac1p, hisp) %>%
+  summarise(puma_persons = sum(PWGTP))
+
+working <- left_join(working, puma_county_crosswalk, by = c("PUMA"))
+
+working <- working %>%
+  group_by(mtc_county_id, rac1p, hisp) %>%
+  summarise(control_persons = sum(puma_persons)) %>%
+  ungroup() %>%
+  mutate(measure = "Other") %>%
+  mutate(measure = ifelse(hisp > 1, "Hispanic", measure)) %>%
+  mutate(measure = ifelse(rac1p == 1 & hisp == 1, "White", measure)) %>%
+  mutate(measure = ifelse(rac1p == 2 & hisp == 1, "Black", measure)) %>%
+  mutate(measure = ifelse(rac1p == 6 & hisp == 1, "Asian", measure)) %>%
+  mutate(measure_category = "Race Ethnicity") %>%
+  select(-rac1p, -hisp)
+
+county_synthesized <- person_df %>%
+  group_by(mtc_county_id, rac1p, hisp) %>%
+  summarise(synthesized_persons = sum(finalweight)) %>%
+  ungroup() %>%
+  mutate(measure = "Other") %>%
+  mutate(measure = ifelse(hisp > 1, "Hispanic", measure)) %>%
+  mutate(measure = ifelse(rac1p == 1 & hisp == 1, "White", measure)) %>%
+  mutate(measure = ifelse(rac1p == 2 & hisp == 1, "Black", measure)) %>%
+  mutate(measure = ifelse(rac1p == 6 & hisp == 1, "Asian", measure)) %>%
+  mutate(measure_category = "Race Ethnicity") %>%
+  select(-rac1p, -hisp)
+
+working <- left_join(working, county_synthesized, by = c("mtc_county_id", "measure", "measure_category"))
+
+county_cross_validation <- rbind(county_cross_validation, working)
+    
+    
+# add other variables for consistency
+county_cross_validation <- county_cross_validation %>%
+  rename(geography_index = mtc_county_id) %>%
+  mutate(geography = "county") %>%
+  mutate(synthesized_households = NA) %>%
+  mutate(control_households = NA) %>%
+  mutate(control_category = "not_controlled")
+  
+
+remove(working, county_synthesized)
+```
+
+#### Region for Uncontrolled Measures
+
 #### Write to disk
 ```{r data-writes}
+# combine controlled and uncontrolled
+county_validation <- rbind(county_validation, county_cross_validation)
+
+# combine across geographies
 validation_output <- rbind(maz_validation, taz_validation, county_validation)
+
+# write to disk
 write.csv(validation_output, file = F_OUTPUT, row.names = FALSE, quote = F)
 ```
 
