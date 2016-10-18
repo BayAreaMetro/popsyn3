@@ -11,14 +11,14 @@ output:
 ## Administration
 
 #### Purpose
-Consumes outputs from the Population Synthesizer. These procedures replace previous procedures done in SQL. A PUMS data dictionary is available [here](http://www2.census.gov/programs-surveys/acs/tech_docs/pums/data_dict/PUMSDataDict13.pdf).   
+Consumes outputs from the Population Synthesizer. These procedures replace previous procedures done in SQL. A PUMS data dictionary is available [here](http://www2.census.gov/programs-surveys/acs/tech_docs/pums/data_dict/PUMS_Data_Dictionary_2007-2011.pdf).   
 
 #### Outputs
 1.  Database to be used with Tableau (see `validation/Validation Test.twb` saved as `Year 20XX Validation Test YY.twb`)
 
 #### TODO
 1. Add non-control validation variables
-2. Non-control check brainstorm: age distribution (county), student status (region), part-time workers (county), race\ethnicity (county), sex (region)
+2. Non-control check brainstorm: student status (county),
 
 ## Procedure
 
@@ -43,8 +43,8 @@ MYSQL_DATABASE  = "pop_syn"
 MYSQL_USER_NAME = "root" 
 
 # simulation year
-YEAR = "year_2000"
-# YEAR = "year_2005"
+# YEAR = "year_2000"
+YEAR = "year_2005"
 # YEAR = "year_2010"
 
 # year of pums source
@@ -282,32 +282,104 @@ working <- left_join(working, puma_county_crosswalk, by = c("PUMA"))
 working <- working %>%
   group_by(mtc_county_id, rac1p, hisp) %>%
   summarise(control_persons = sum(puma_persons)) %>%
-  ungroup() %>%
-  mutate(measure = "Other") %>%
-  mutate(measure = ifelse(hisp > 1, "Hispanic", measure)) %>%
-  mutate(measure = ifelse(rac1p == 1 & hisp == 1, "White", measure)) %>%
-  mutate(measure = ifelse(rac1p == 2 & hisp == 1, "Black", measure)) %>%
-  mutate(measure = ifelse(rac1p == 6 & hisp == 1, "Asian", measure)) %>%
-  mutate(measure_category = "Race Ethnicity") %>%
-  select(-rac1p, -hisp)
+  ungroup() 
 
 county_synthesized <- person_df %>%
   group_by(mtc_county_id, rac1p, hisp) %>%
   summarise(synthesized_persons = sum(finalweight)) %>%
-  ungroup() %>%
+  ungroup()
+
+working <- left_join(working, county_synthesized, by = c("mtc_county_id", "rac1p", "hisp"))
+
+working <- working %>%
+  mutate(synthesized_persons = ifelse(is.na(synthesized_persons), 0L, synthesized_persons)) %>%
   mutate(measure = "Other") %>%
   mutate(measure = ifelse(hisp > 1, "Hispanic", measure)) %>%
   mutate(measure = ifelse(rac1p == 1 & hisp == 1, "White", measure)) %>%
   mutate(measure = ifelse(rac1p == 2 & hisp == 1, "Black", measure)) %>%
   mutate(measure = ifelse(rac1p == 6 & hisp == 1, "Asian", measure)) %>%
-  mutate(measure_category = "Race Ethnicity") %>%
-  select(-rac1p, -hisp)
-
-working <- left_join(working, county_synthesized, by = c("mtc_county_id", "measure", "measure_category"))
+  group_by(mtc_county_id, measure) %>%
+  summarize(control_persons = sum(control_persons), synthesized_persons = sum(synthesized_persons)) %>%
+  ungroup() %>%
+  mutate(measure_category = "Race Ethnicity")
 
 county_cross_validation <- rbind(county_cross_validation, working)
-    
-    
+
+# uncontrolled #3: usual hours worked per week last 12 months
+working <- pums_person %>%
+  select(PUMA, wkhp = WKHP, PWGTP) %>%
+  mutate(wkhp = ifelse(is.na(wkhp), 0L, wkhp)) %>%
+  group_by(PUMA, wkhp) %>%
+  summarise(puma_persons = sum(PWGTP))
+
+working <- left_join(working, puma_county_crosswalk, by = c("PUMA"))
+
+working <- working %>%
+  group_by(mtc_county_id, wkhp) %>%
+  summarise(control_persons = sum(puma_persons)) %>%
+  ungroup() 
+
+county_synthesized <- person_df %>%
+  mutate(wkhp = ifelse(is.na(wkhp), 0L, wkhp)) %>%
+  group_by(mtc_county_id, wkhp) %>%
+  summarise(synthesized_persons = sum(finalweight)) %>%
+  ungroup()
+
+working <- left_join(working, county_synthesized, by = c("mtc_county_id", "wkhp"))
+
+working <- working %>%
+  mutate(synthesized_persons = ifelse(is.na(synthesized_persons), 0L, synthesized_persons)) %>%
+  mutate(measure = "ERROR") %>%
+  mutate(measure = ifelse(wkhp == 0, "Non-worker", measure)) %>%
+  mutate(measure = ifelse(wkhp > 0 & wkhp < 21, "Less than 21 hours", measure)) %>%
+  mutate(measure = ifelse(wkhp >= 21 &  wkhp < 36, "Between 21 and 35 hours", measure)) %>%
+  mutate(measure = ifelse(wkhp >= 36 & wkhp < 46, "Between 35 and 46 hours", measure)) %>%
+  mutate(measure = ifelse(wkhp >= 46, "More than 46 hours", measure)) %>%
+  group_by(mtc_county_id, measure) %>%
+  summarise(control_persons = sum(control_persons), synthesized_persons = sum(synthesized_persons)) %>%
+  mutate(measure_category = "Usual Work Week Hours") %>%
+  ungroup()
+
+county_cross_validation <- rbind(county_cross_validation, working)
+
+# uncontrolled #4: school grade
+working <- pums_person %>%
+  select(PUMA, schg = SCHG, PWGTP) %>%
+  mutate(schg = ifelse(is.na(schg), 0L, schg)) %>%
+  group_by(PUMA, schg) %>%
+  summarise(puma_persons = sum(PWGTP))
+
+working <- left_join(working, puma_county_crosswalk, by = c("PUMA"))
+
+working <- working %>%
+  group_by(mtc_county_id, schg) %>%
+  summarise(control_persons = sum(puma_persons)) %>%
+  ungroup() 
+
+county_synthesized <- person_df %>%
+  mutate(schg = ifelse(is.na(schg), 0L, schg)) %>%
+  group_by(mtc_county_id, schg) %>%
+  summarise(synthesized_persons = sum(finalweight)) %>%
+  ungroup()
+
+working <- left_join(working, county_synthesized, by = c("mtc_county_id", "schg"))
+
+working <- working %>%
+  mutate(synthesized_persons = ifelse(is.na(synthesized_persons), 0L, synthesized_persons)) %>%
+  mutate(measure = "ERROR") %>%
+  mutate(measure = ifelse(schg == 0, "Non-student", measure)) %>%
+  mutate(measure = ifelse(schg == 1, "Preschool", measure)) %>%
+  mutate(measure = ifelse(schg == 2 | schg == 3, "Grade School", measure)) %>%
+  mutate(measure = ifelse(schg == 4, "Middle School", measure)) %>%
+  mutate(measure = ifelse(schg == 5, "High School", measure)) %>%
+  mutate(measure = ifelse(schg >= 6, "College", measure)) %>%
+  group_by(mtc_county_id, measure) %>%
+  summarise(control_persons = sum(control_persons), synthesized_persons = sum(synthesized_persons)) %>%
+  mutate(measure_category = "Student Status") %>%
+  ungroup()
+
+county_cross_validation <- rbind(county_cross_validation, working)
+
 # add other variables for consistency
 county_cross_validation <- county_cross_validation %>%
   rename(geography_index = mtc_county_id) %>%
@@ -316,7 +388,6 @@ county_cross_validation <- county_cross_validation %>%
   mutate(control_households = NA) %>%
   mutate(control_category = "not_controlled")
   
-
 remove(working, county_synthesized)
 ```
 

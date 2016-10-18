@@ -18,9 +18,8 @@ Prepares inputs for the Population Synthesizer. These procedures replace previou
 2.  Year-specific household and person PUMS data written to MySQL database
 
 #### TODO
-1. Check the dollar year in the control and read the documentation to make sure the PUMS conversion puts them in year 2010 dollars
+1. Check the dollar year in the control (PUMS checked: it is year 2010 dollars)
 2. Re-build the controls from census data, use scripts and apis, check the dollar year for the TAZ controls
-3. Make the SOC to occupation relationship a table rather than a series of ifs
 
 ## Procedure
 
@@ -49,6 +48,21 @@ PUMS_YEAR = "2007_2011"
 # YEAR = "year_2000"
 YEAR = "year_2005"
 # YEAR = "year_2010"
+
+# build occupation code data frame
+socp10_first_two = c(11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 31, 33, 35, 37, 39, 41, 43, 45, 47, 49, 51, 53, 55)
+occupation_code  = c( 1,  2,  2,  2,  2,  3,  2,  2,  3,  2,  3,  3,  4,  5,  3,  4,  3,  5,  5,  5,  5,  5,  6)
+
+socp10_occupation_df = data.frame(soc = socp10_first_two, occupation = occupation_code)
+
+occupation_code = c(1,2,3,4,5,6)
+occupation_category = c("Management", "Professional", "Services", "Retail", "Manual", "Military")
+
+occupation_df = data.frame(occupation = occupation_code, occupation_category)
+
+socp10_occupation_df <- left_join(socp10_occupation_df, occupation_df, by = c("occupation"))
+
+remove(occupation_df, occupation_code, occupation_category, socp10_first_two)
 ```
 
 #### Remote file locations
@@ -186,13 +200,27 @@ pums_hh <- pums_hh %>%
   mutate(hh_workers_from_esr = ifelse(is.na(hh_workers_from_esr), 0, hh_workers_from_esr))
 
 # put income in constant year dollars (SQL says reported income * rolling reference factor * inflation adjustment)
+
+# from PUMS Data Dictionary
+# Adjustment factor for income and earnings dollar amounts (6 implied decimal places) 
+# 1102938 .2007 factor (1.016787 * 1.08472906) 
+# 1063801 .2008 factor (1.018389 * 1.04459203)  
+# 1048026 .2009 factor (0.999480 * 1.04857143)
+# 1039407 .2010 factor (1.007624 * 1.03154279) 
+# 1018237 .2011 factor (1.018237 * 1.00000000) 
+# Note: The values of ADJINC inflation-adjusts reported income to 2011 dollars.  
+# ADJINC incorporates an adjustment that annualizes the different rolling reference periods for reported income (as done in the single-
+# year data using the variable ADJUST) and an adjustment to inflation-
+# adjust the annualized income to 2011 dollars.  ADJINC applies to variables FINCP and HINCP in the housing record, and 
+# variables INTP, OIP, PAP, PERNP, PINCP, RETP, SEMP, SSIP, SSP, and WAGP in the person record. 
+
 pums_hh <- pums_hh %>%
   mutate(hh_income_2010 = 999) %>%
-  mutate(hh_income_2010 = ifelse(ADJINC == 1102938, HINCP/1.0 * 1.016787 * 1.05156, hh_income_2010)) %>%
-  mutate(hh_income_2010 = ifelse(ADJINC == 1063801, HINCP/1.0 * 1.018389 * 1.01265, hh_income_2010)) %>%
-  mutate(hh_income_2010 = ifelse(ADJINC == 1048026, HINCP/1.0 * 0.999480 * 1.01651, hh_income_2010)) %>%
-  mutate(hh_income_2010 = ifelse(ADJINC == 1039407, HINCP/1.0 * 1.007624 * 1.00000, hh_income_2010)) %>%
-  mutate(hh_income_2010 = ifelse(ADJINC == 1018237, HINCP/1.0 * 1.018237 * 0.96942, hh_income_2010))
+  mutate(hh_income_2010 = ifelse(ADJINC == 1102938, HINCP/1.0 * 1.016787 * 1.08472906/1.03154279, hh_income_2010)) %>%
+  mutate(hh_income_2010 = ifelse(ADJINC == 1063801, HINCP/1.0 * 1.018389 * 1.04459203/1.03154279, hh_income_2010)) %>%
+  mutate(hh_income_2010 = ifelse(ADJINC == 1048026, HINCP/1.0 * 0.999480 * 1.04857143/1.03154279, hh_income_2010)) %>%
+  mutate(hh_income_2010 = ifelse(ADJINC == 1039407, HINCP/1.0 * 1.007624 * 1.03154279/1.03154279, hh_income_2010)) %>%
+  mutate(hh_income_2010 = ifelse(ADJINC == 1018237, HINCP/1.0 * 1.018237 * 1.00000000/1.03154279, hh_income_2010))
 
 # give each hh a more manageable unique id
 unique_hh_id <- 1:nrow(pums_hh)
@@ -213,17 +241,15 @@ pums_per <- pums_per %>%
 pums_per <- pums_per %>%
   mutate(soc = str_trim(socp00, side = c("both"))) %>%
   mutate(soc = ifelse(soc == "N.A.//", str_trim(socp10, side = c("both")), soc)) %>%
-  mutate(soc = str_sub(soc, start = 1, end = 2)) %>%
-  mutate(occupation = 999) %>%
-  mutate(occupation = ifelse(soc == 11, 1, occupation)) %>% # TODO check, SQL code says 'management'
-  mutate(occupation = ifelse(soc == 13 | soc == 15 | soc == 17 | soc == 19 | soc == 23 | soc == 25 | soc == 29, 2, occupation)) %>% # 'professional'
-  mutate(occupation = ifelse(soc == 21 | soc == 27 | soc == 31 | soc == 33 | soc == 39 | soc == 43, 3, occupation)) %>% # 'services'
-  mutate(occupation = ifelse(soc == 35 | soc == 41, 4, occupation)) %>% # 'retail'
-  mutate(occupation = ifelse(soc == 37 | soc == 45 | soc == 47 | soc == 49 | soc == 51 | soc == 53 , 5, occupation)) %>% # 'manual'
-  mutate(occupation = ifelse(soc == 55, 6, occupation)) # 'military'
+  mutate(soc = as.numeric(str_sub(soc, start = 1, end = 2)))
+
+pums_per <- left_join(pums_per, socp10_occupation_df, by = c("soc"))
 
 table(pums_per$occupation)
-table(pums_per$soc)
+table(pums_per$occupation_category)
+
+pums_per <- pums_per %>%
+  select(-occupation_category)
 
 remove(hh_weights, num_workers, relevant_pumas)
 
