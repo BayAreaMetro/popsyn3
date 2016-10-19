@@ -11,7 +11,7 @@ output:
 ## Administration
 
 #### Purpose
-Prepares inputs for the Population Synthesizer. These procedures replace previous procedures done in SQL. Note the input geographies file use the 2000 Decennial Census PUMA boundaries, as do the five-year 2007 to 2011 PUMS data.  
+Prepares database inputs for the Population Synthesizer. These procedures replace previous procedures done in SQL. Note the input geographies file use the 2000 Decennial Census PUMA boundaries, as do the five-year 2007 to 2011 PUMS data.  
 
 #### Outputs
 1.  Year-specific control tables (maz, taz, and county) written to MySQL database

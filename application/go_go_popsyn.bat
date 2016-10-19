@@ -10,7 +10,7 @@
 :: 11. determine if I can re-create the previous validation results for any set of weights
 :: 12. what about a person control at the county level with a high weight?
 :: 13. introduce control on ages 16-18 (after confirming problem exists for 2000, 2005, and 2010)
-
+:: 14. figure out how group quarters are handled
 
 :: ms-dos batch file to run the population synthesizer
 
