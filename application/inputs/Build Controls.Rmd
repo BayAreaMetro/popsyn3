@@ -27,7 +27,7 @@ Builds the control tables for the Population Synthesizer from Census data. The c
 library(knitr)
 
 # devtools::install_github("hrecht/censusapi")
-library(censusapi)
+suppressMessages(library(censusapi))
 
 suppressMessages(library(dplyr))
 ```
@@ -118,7 +118,7 @@ working <- working %>%
 household_size_df <- rbind(household_size_df, working)
 
 
-# 2010: use decennial, SF1, note that variable names are different than for 2000
+# 2010: use decennial, SF1 (note that variable names are different than for 2000)
 raw_census <- getCensus(name = "sf1", 
                         vintage = 2010, 
                         key = api_key$key,
@@ -139,17 +139,42 @@ household_size_df <- rbind(household_size_df, working)
 
 ```
 
-#### County Control: Population
-# TODO: how are group quarters handled?
+#### County Control: Household and Group Quarters Population
 ```{r county-population}
-# start here with H10. Total Population In Occupied Housing Units[1]
+# 2000: use decennial, SF1
 raw_census <- getCensus(name = "sf1", 
                         vintage = 2000, 
                         key = api_key$key, 
-                        vars=c("H010001"), 
+                        vars=c("H010001", "P037006"), 
                         region = paste("county:", COUNTY_FIPS_STRING, sep = ""),
                         regionin = paste("state:", STATE_FIPS, sep = ""))
 
+working <- left_join(raw_census, county_codes, by = c("county"))
+
+hh_gq_pop_df <- working %>%
+  rename(hh_population = H010001, non_inst_gq_population = P037006) %>%
+  mutate(year = 2000) %>%
+  select(year, county_name, mtc_county_id, hh_population, non_inst_gq_population)
+
+# start here
+# 2005
+
+# 2010: use decennial, SF1 (note that variable names are different than for 2000)
+raw_census <- getCensus(name = "sf1", 
+                        vintage = 2010, 
+                        key = api_key$key, 
+                        vars=c("H0100001", "P0420007"), 
+                        region = paste("county:", COUNTY_FIPS_STRING, sep = ""),
+                        regionin = paste("state:", STATE_FIPS, sep = ""))
+
+working <- left_join(raw_census, county_codes, by = c("county"))
+
+working <- working %>%
+  rename(hh_population = H0100001, non_inst_gq_population = P0420007) %>%
+  mutate(year = 2010) %>%
+  select(year, county_name, mtc_county_id, hh_population, non_inst_gq_population)
+
+hh_gq_pop_df <- rbind(hh_gq_pop_df, working)
 
 ```
 

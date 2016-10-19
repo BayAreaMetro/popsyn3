@@ -10,7 +10,9 @@
 :: 11. determine if I can re-create the previous validation results for any set of weights
 :: 12. what about a person control at the county level with a high weight?
 :: 13. introduce control on ages 16-18 (after confirming problem exists for 2000, 2005, and 2010)
-:: 14. figure out how group quarters are handled
+:: 14. figure out how group quarters are handled? add cross validation on variable TYPE, but note that PUMS does not give weights to group quarters. so right now when we create the seed list, we
+::     remove vacant units and we remove group quarters. so they are not considered in the expansion. what to do about this? we could put them back in and add a county-level control. 
+::     how about we run popsyn again to only expand to group quarters. so we have a separate seed list as well as separate controls? And then append the two files?
 
 :: ms-dos batch file to run the population synthesizer
 
