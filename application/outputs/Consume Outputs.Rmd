@@ -103,6 +103,10 @@ maz_synthezised <- household_df %>%
 
 maz_validation <- left_join(maz_validation, maz_synthezised, by = c("maz"))
 
+# replace NAs with zeros
+maz_validation <- maz_validation %>%
+  mutate(synthesized_households = ifelse(is.na(synthesized_households), 0L, synthesized_households))
+
 # standardize variables to combine across geographies
 maz_validation <- maz_validation %>%
   rename(geography_index = maz) %>%
@@ -138,6 +142,10 @@ taz_synthesized <- household_df %>%
   select(-income_quartile)
 
 taz_validation <- left_join(taz_validation, taz_synthesized, by = c("taz", "measure"))  
+
+# replace NAs with zeros
+taz_validation <- taz_validation %>%
+  mutate(synthesized_households = ifelse(is.na(synthesized_households), 0L, synthesized_households))
 
 # standardize variables to combine across geographies
 taz_validation <- taz_validation %>%
@@ -393,17 +401,43 @@ remove(working, county_synthesized)
 
 #### Region for Uncontrolled Measures
 
-#### Write to disk
-```{r data-writes}
+#### Bind data across geographies, control level
+```{r bind}
 # combine controlled and uncontrolled
 county_validation <- rbind(county_validation, county_cross_validation)
 
 # combine across geographies
 validation_output <- rbind(maz_validation, taz_validation, county_validation)
-
-# write to disk
-write.csv(validation_output, file = F_OUTPUT, row.names = FALSE, quote = F)
 ```
 
-# DEBUG
+
+#### Scale distribution controls/uncontrolled measures
+# TODO: is this helpful? should a strong county persons control do the same thing?
+```{r scaling}
+table(validation_output$measure_category)
+
+# compute scaling factors, set to 1.00 for persons and households controls
+scaling_factors <- validation_output %>%
+  group_by(measure_category) %>%
+  summarise(person_adjustment    = sum(synthesized_persons) / sum(control_persons), 
+            household_adjustment = sum(synthesized_households) / sum(control_households)) %>%
+  ungroup() %>%
+  mutate(household_adjustment = ifelse(measure_category == "Households", 1.00, household_adjustment)) %>%
+  mutate(person_adjustment    = ifelse(measure_category == "Persons",    1.00, person_adjustment))
+
+validation_output <- left_join(validation_output, scaling_factors, by = c("measure_category"))
+
+validation_output <- validation_output %>%
+  mutate(control_households = control_households * household_adjustment) %>%
+  mutate(control_persons    = control_persons * person_adjustment)
+  
+
+```
+
+
+#### Write to disk
+```{r data-writes}
+
+write.csv(validation_output, file = F_OUTPUT, row.names = FALSE, quote = F)
+```
 

@@ -1,0 +1,171 @@
+---
+title: "Step 03 Controls to Database"
+author: "David Ory"
+output: 
+  html_document:
+    theme: cosmo
+    toc: yes
+---
+
+
+## Administration
+
+#### Purpose
+Prepares database inputs for the Population Synthesizer. These procedures replace previous procedures done in SQL. Note the input geographies file use the 2000 Decennial Census PUMA boundaries, as do the five-year 2007 to 2011 PUMS data.  
+
+#### Outputs
+1.  Year-specific control tables (maz, taz, and county) written to MySQL database
+
+#### TODO
+1.  Check
+
+## Procedure
+
+#### Overhead
+```{r overhead, results = 'hide'}
+library(knitr)
+suppressMessages(library(dplyr))
+library(stringr)
+suppressMessages(library(RMySQL))
+```
+
+```{r config, include=FALSE}
+knitr::opts_chunk$set(cache=TRUE)
+```
+
+#### Paramaters
+```{r parameters}
+MYSQL_SERVER    = "localhost"
+MYSQL_DATABASE  = "pop_syn"
+MYSQL_USER_NAME = "root" 
+
+# input data configured for 2000, 2005, and 2010
+# YEAR = "year_2000"
+YEAR = "year_2005"
+# YEAR = "year_2010"
+
+```
+
+#### Remote file locations
+```{r remote-dir}
+MYSQL_PASSWORD_FILE <- "C:/Users/dory/Desktop/mysql.csv"
+
+CONTROL_DIR <- "M:/Development/PopulationSynthesizer/PopSyn3/_working/mysql_version/input_data"
+
+MAZ_CONTROL_FILE <-    paste(CONTROL_DIR, YEAR, "maz_data.csv", sep = "/")
+TAZ_CONTROL_FILE <-    paste(CONTROL_DIR, YEAR, "taz_data.csv", sep = "/")
+COUNTY_CONTROL_FILE <- paste(CONTROL_DIR, YEAR, "county_data.csv", sep = "/")
+AGE_CONTROL_FILE <-    paste(CONTROL_DIR, YEAR, "persons_by_age.csv", sep = "/")
+GEOG_CONTROL_FILE <-   paste(CONTROL_DIR, "geographies.csv", sep = "/")
+
+```
+
+#### Data reads
+```{r data-reads}
+input_maz <- read.csv(MAZ_CONTROL_FILE, header = TRUE)
+input_taz <- read.csv(TAZ_CONTROL_FILE, header = TRUE)
+input_county <- read.csv(COUNTY_CONTROL_FILE, header = TRUE)
+input_age <- read.csv(AGE_CONTROL_FILE, header = TRUE)
+input_geog <- read.csv(GEOG_CONTROL_FILE, header = TRUE)
+
+```
+
+#### Prepare MAZ controls
+```{r prep-maz}
+control_totals_maz <- input_maz
+
+# the geographies file reminds us we are using the 2000 Census PUMAs
+input_geog <- input_geog %>%
+  rename(PUMA = PUMA5CE00)
+
+control_totals_maz <- left_join(control_totals_maz, input_geog, by = c("maz_original"))
+
+```
+
+#### Prepare TAZ controls
+```{r prep-taz}
+control_totals_taz <- control_totals_maz %>%
+  group_by(taz_original) %>%
+  summarise(households = sum(households))
+
+# create TAZ crosswalk, checking for PUMA and COUNTY overlaps
+taz_geog <- input_geog %>%
+  group_by(taz, taz_original, PUMA, COUNTYFP, mtc_county_id, county_name) %>%
+  summarise(count = n()) %>%
+  select(-count)
+
+check_taz_geog <- taz_geog %>%
+  group_by(taz) %>%
+  summarise(count = n()) %>%
+  filter(count > 1)
+
+control_totals_taz <- left_join(control_totals_taz, taz_geog, by = c("taz_original"))
+
+# bring in income
+to_join_taz <- input_taz %>%
+  select(taz_original, hh_income_quartile_1 = income_2010_0_30, hh_income_quartile_2 = income_2010_30_60, 
+         hh_income_quartile_3 = income_2010_60_100, hh_income_quartile_4 = income_2010_100_up)
+
+control_totals_taz <- left_join(control_totals_taz, to_join_taz, by = c("taz_original"))
+
+remove(taz_geog, to_join_taz)
+
+```
+
+#### Prepare County/Meta controls
+```{r prep-county}
+control_totals_meta <- input_age %>%
+  select(county_full_name, age_category, persons_by_age) %>%
+  mutate(county_name = str_replace(county_full_name, " County", "")) %>%
+  mutate(age_int = str_replace(age_category, "\\+", "")) %>%
+  mutate(age_int = str_replace(age_int, "Ages ", "")) %>%
+  mutate(age_int = str_replace(age_int, "Age ", "")) %>%
+  mutate(age_int = as.numeric(age_int)) %>%
+  mutate(age_00_18 = ifelse(age_int < 19, persons_by_age, 0)) %>%
+  mutate(age_19_64 = ifelse(age_int >= 19 & age_int < 65, persons_by_age, 0)) %>%
+  mutate(age_65_up = ifelse(age_int >= 65, persons_by_age, 0))
+
+control_totals_meta <- control_totals_meta %>%
+  group_by(county_name) %>%
+  summarise(age_00_18 = sum(age_00_18), age_19_64 = sum(age_19_64), age_65_up = sum(age_65_up))
+
+# create county crosswalk
+county_names <- input_county %>%
+  select(county_name_factor = county_name, mtc_county_id) %>%
+  mutate(county_name = paste(county_name_factor)) %>%
+  select(-county_name_factor)
+
+control_totals_meta <- left_join(control_totals_meta, county_names, by = c("county_name"))
+
+# bring in hh size, hh workers, and occupation
+to_join_meta <- input_county %>%
+  select(mtc_county_id, hh_size_1, hh_size_2, hh_size_3, hh_size_4_plus, hh_workers_0, hh_workers_1, hh_workers_2, hh_workers_3_plus,
+         occupation_management, occupation_professional, occupation_services,
+         occupation_retail, occupation_manual, occupation_military)
+
+control_totals_meta <- left_join(control_totals_meta, to_join_meta, by = c("mtc_county_id"))
+
+remove(county_names, to_join_meta)
+
+```
+
+#### Put data into MySQL database
+```{r data-to-mysql}
+# get password
+mysql_passes <- read.csv(MYSQL_PASSWORD_FILE, header = TRUE)
+
+mysql_passes <- mysql_passes %>%
+  filter(user == MYSQL_USER_NAME) %>%
+  mutate(pwd = paste(pwd))
+
+# connection
+mysql_connection <- dbConnect(MySQL(), user = MYSQL_USER_NAME, password = mysql_passes$pwd, host = MYSQL_SERVER, dbname = MYSQL_DATABASE)
+
+# write the control tables
+dbWriteTable(conn = mysql_connection, name = paste('control_totals_maz',  YEAR, sep = '_'), value = as.data.frame(control_totals_maz),  overwrite = TRUE)
+dbWriteTable(conn = mysql_connection, name = paste('control_totals_taz',  YEAR, sep = '_'), value = as.data.frame(control_totals_taz),  overwrite = TRUE)
+dbWriteTable(conn = mysql_connection, name = paste('control_totals_meta', YEAR, sep = '_'), value = as.data.frame(control_totals_meta), overwrite = TRUE)
+
+dbDisconnect(mysql_connection)
+```
+
