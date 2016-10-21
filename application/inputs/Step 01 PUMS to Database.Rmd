@@ -17,9 +17,12 @@ Prepares PUMS database inputs for the Population Synthesizer. These procedures r
 1.  Year-specific household and person PUMS data written to MySQL database
 
 #### TODO
-1.  Everything, early days
-2.  Put in the 2000 data sufficient for Step 02 (building the controls)
-3.  Put in the 2000 data sufficient for running the software
+1.  Software currently expects: 
+  hh attributes: serialno, np, hincp, ten, bld, hh_workers_from_esr, hh_income_2010, adjinc, veh, hht, type, npf, hupac
+  person attributes: sporder, agep, sex, occupation, wkhp, esr, schg, employed, wkw, mil, schl, indp02, indp07, occp02, occp10, rac1p, hisp
+So CT-RAMP may use some of these and the population synthesizer may use others. In either case, track down equivalents (if possible) in the 2000 PUMS if I decide to try and use the 2000 PUMS as the seed. 
+
+2. hweight has missing values -- why?
 
 ## Procedure
 
@@ -62,12 +65,12 @@ remove(occupation_df, occupation_code, occupation_category, socp10_first_two)
 MYSQL_PASSWORD_FILE <- "C:/Users/dory/Desktop/mysql.csv"
 
 PUMS_0711_DIR <- "M:/Development/PopulationSynthesizer/PopSyn3/pums_data/acs2011_5yr/ca"
-
 PUMS_0711_HH_FILE <- paste(PUMS_0711_DIR, "ss11hca.csv", sep = "/")
 PUMS_0711_PER_FILE <- paste(PUMS_0711_DIR, "ss11pca.csv", sep = "/")
 
-PUMS_00_DIR <- "M:/Development/PopulationSynthesizer/PopSyn3/pums_data/_working"
-PUMS_00_FILE <- paste(PUMS_00_DIR, "usa_00001.csv", sep = "/")
+PUMS_00_DIR <- "M:/Data/Census/PUMS/PUMS2000/CSV"
+PUMS_00_HH_FILE <- paste(PUMS_00_DIR, "hbayarea5_2000.csv", sep = "/")
+PUMS_00_PER_FILE <- paste(PUMS_00_DIR, "pbayarea5_2000.csv", sep = "/")
 
 CONTROL_DIR <- "M:/Development/PopulationSynthesizer/PopSyn3/_working/mysql_version/input_data"
 GEOG_CONTROL_FILE <-   paste(CONTROL_DIR, "geographies.csv", sep = "/")
@@ -81,7 +84,15 @@ input_geog <- read.csv(GEOG_CONTROL_FILE, header = TRUE)
 input_pums_0711_hh <- read.csv(PUMS_0711_HH_FILE, header = TRUE)
 input_pums_0711_per <- read.csv(PUMS_0711_PER_FILE, header = TRUE)
 
-input_pums_00 <- read.csv(PUMS_00_FILE, header = TRUE)
+input_pums_00_hh <- read.csv(PUMS_00_HH_FILE, header = TRUE)
+input_pums_00_per <- read.csv(PUMS_00_PER_FILE, header = TRUE)
+
+# rename geography
+input_pums_00_hh <- input_pums_00_hh %>%
+  rename(PUMA = puma5)
+
+input_pums_00_per <- input_pums_00_per %>%
+  rename(PUMA = puma5)
 ```
 
 #### Prepare 2007-2011 PUMS data
@@ -93,8 +104,8 @@ input_geog <- input_geog %>%
 # get list of relevant pums
 relevant_pumas <- unique(input_geog$PUMA)
 
-pums_hh  <- input_pums_0711_hh[input_pums_hh$PUMA %in% relevant_pumas,]
-pums_per <- input_pums_0711_per[input_pums_per$PUMA %in% relevant_pumas,]
+pums_hh  <- input_pums_0711_hh[input_pums_0711_hh$PUMA %in% relevant_pumas,]
+pums_per <- input_pums_0711_per[input_pums_0711_per$PUMA %in% relevant_pumas,]
 
 # remove vacant units and group quarters households
 pums_hh <- pums_hh %>%
@@ -111,6 +122,10 @@ pums_hh <- left_join(pums_hh, num_workers, by = c("SERIALNO"))
 
 pums_hh <- pums_hh %>%
   mutate(hh_workers_from_esr = ifelse(is.na(hh_workers_from_esr), 0, hh_workers_from_esr))
+
+# use ESR to set employment dummy
+pums_per <- pums_per %>%
+  mutate(employed = ifelse(ESR == 1 | ESR == 2 | ESR == 4 | ESR == 5, 1, 0L))
 
 # put income in constant year dollars (SQL says reported income * rolling reference factor * inflation adjustment)
 
@@ -145,10 +160,6 @@ hh_weights <- pums_hh %>%
   select(SERIALNO, wgtp = WGTP, unique_hh_id)
 
 pums_per <- left_join(pums_per, hh_weights, by = c("SERIALNO"))
-
-# use ESR to set employment dummy
-pums_per <- pums_per %>%
-  mutate(employed = ifelse(ESR == 1 | ESR == 2 | ESR == 4 | ESR == 5, 1, 0L))
 
 # extract the occupation code
 pums_per <- pums_per %>%
@@ -196,14 +207,75 @@ dbDisconnect(mysql_connection)
 # get list of relevant pums
 relevant_pumas <- unique(input_geog$PUMA)
 
-pums_hh  <- input_pums_00[input_pums_00$PUMA %in% relevant_pumas,]
+pums_hh  <- input_pums_00_hh[input_pums_00_hh$PUMA %in% relevant_pumas,]
+pums_per <- input_pums_00_per[input_pums_00_per$PUMA %in% relevant_pumas,]
 
-#START HERE
-# build the hh file
-# build the person file
-# check the worker and occupation variables
-# just put those in the database for now (sufficient for Step 02)
-# TODO get all the fields from SI and re-do
+# remove vacant units and group quarters households
+pums_hh <- pums_hh %>%
+  filter(!(hht == 0))
+
+# compute number of workers in the household
+num_workers <- pums_per %>%
+  mutate(workers = ifelse(esr == 1 | esr == 2 | esr == 4 | esr == 5, 1, 0)) %>%
+  group_by(serialno) %>%
+  summarise(hh_workers_from_esr = sum(workers))
+
+pums_hh <- left_join(pums_hh, num_workers, by = c("serialno"))
+
+pums_hh <- pums_hh %>%
+  mutate(hh_workers_from_esr = ifelse(is.na(hh_workers_from_esr), 0, hh_workers_from_esr))
+
+# use ESR to set employment dummy
+pums_per <- pums_per %>%
+  mutate(employed = ifelse(esr == 1 | esr == 2 | esr == 4 | esr == 5, 1, 0L))
+
+# household income
+# inflation assumptions reference: http://analytics.mtc.ca.gov/foswiki/Main/inflationassumptions
+pums_hh <- pums_hh %>%
+  mutate(hh_income_2010 = hinc * 227.47 / 172.50)
+
+# give each hh a more manageable unique id
+unique_hh_id <- 1:nrow(pums_hh)
+
+pums_hh <- cbind(pums_hh, unique_hh_id)
+rownames(pums_hh) <- 1:nrow(pums_hh)
+
+# set the initial person weight as the hh weight and give the person table the hhnum id, remove NAs (group quarters)
+hh_weights <- pums_hh %>%
+  select(serialno, wgtp = hweight, unique_hh_id)
+
+pums_per <- left_join(pums_per, hh_weights, by = c("serialno"))
+
+pums_per <- pums_per %>%
+  filter(!is.na(wgtp))
+
+# extract the occupation code
+# *appears* to be consistent with 2010 (http://www.census.gov/people/io/files/occ2000t.pdf)
+pums_per <- pums_per %>%
+  mutate(soc = as.numeric(str_sub(occsoc1, start = 1L, end = 2L)))
+
+pums_per <- left_join(pums_per, socp10_occupation_df, by = c("soc"))
+
+table(pums_per$occupation_category)
+
+pums_per <- pums_per %>%
+  select(-occupation_category)
+
+remove(hh_weights, num_workers, relevant_pumas)
 
 ```
 
+#### Put 2000 data into MySQL database
+```{r data-00-to-mysql}
+# year of the PUMS data
+PUMS_YEAR = "2000"
+
+# connection
+mysql_connection <- dbConnect(MySQL(), user = MYSQL_USER_NAME, password = mysql_passes$pwd, host = MYSQL_SERVER, dbname = MYSQL_DATABASE)
+
+# write the household and person tables
+dbWriteTable(conn = mysql_connection, name = paste('household_table', PUMS_YEAR, sep = '_'), value = as.data.frame(pums_hh),  overwrite = TRUE)
+dbWriteTable(conn = mysql_connection, name = paste('person_table', PUMS_YEAR, sep = '_'),    value = as.data.frame(pums_per), overwrite = TRUE)
+
+dbDisconnect(mysql_connection)
+```

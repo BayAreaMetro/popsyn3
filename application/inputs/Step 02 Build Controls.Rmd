@@ -64,9 +64,6 @@ occupation_df = data.frame(occupation = c(1,2,3,4,5,6),
 MYSQL_SERVER    = "localhost"
 MYSQL_DATABASE  = "pop_syn"
 MYSQL_USER_NAME = "root" 
-
-
-
 ```
 
 #### Remote file locations
@@ -112,8 +109,6 @@ puma_to_county <- input_geog %>%
 remove(input_geog)
 ```
 
-
-#### We are doing the worker and occupation calculations in `Prepare Inputs.rmd`, so just read from the database
 # Data reads
 ```{r data-reads}
 # get password
@@ -128,12 +123,11 @@ mysql_connection <- dbConnect(MySQL(), user = MYSQL_USER_NAME, password = mysql_
 
 # read the synthetic population tables
 pums_person_0711 <- dbReadTable(conn = mysql_connection, name = paste('person_table', "2007_2011", sep = '_'))
+pums_person_00   <- dbReadTable(conn = mysql_connection, name = paste('person_table', "2000", sep = '_'))
 
 dbDisconnect(mysql_connection)
 
 ```
-
-
 
 #### County Control: Households by size
 ```{r county-household-size}
@@ -263,14 +257,37 @@ remove(gq_2000_df, gq_2005_df, gq_2010_df, working, raw_census)
 ```
 
 #### County Control: Occupation
-```{r occupation}
+```{r county-occupation}
 # 2000: use PUMS
-
-# 2005: use the average of the two PUMS estimates
-
-# 2010: use 2007 to 2011 PUMS
 relevant_pumas <- unique(puma_to_county$PUMA)
 
+pums_per <- pums_person_00[pums_person_00$PUMA %in% relevant_pumas,]
+
+# TODO fix the NA removal -- why are weights NA?
+working <- pums_per %>%
+  select(PUMA, occupation, wgtp) %>%
+  filter(!(is.na(wgtp))) %>%
+  group_by(PUMA, occupation) %>%
+  summarise(persons = sum(wgtp)) %>%
+  ungroup() %>%
+  filter(!(is.na(occupation)))
+
+sum(working$persons)
+
+working <- left_join(working, occupation_df, by = c("occupation"))
+working <- left_join(working, puma_to_county, by = c("PUMA"))
+
+working_sum <- working %>%
+  mutate(occupation_category = paste("occupation", str_to_lower(occupation_category), sep = "_")) %>%
+  group_by(county_name, occupation_category) %>%
+  summarise(persons = sum(persons))
+
+persons_occupation_df <- dcast(working_sum, county_name ~ occupation_category, sum, value.var = c("persons"))
+
+persons_occupation_df <- persons_occupation_df %>%
+  mutate(year = 2000)
+
+# 2010: use 2007 to 2011 PUMS
 pums_per <- pums_person_0711[pums_person_0711$PUMA %in% relevant_pumas,]
 
 sum(pums_per$PWGTP)
@@ -292,11 +309,94 @@ working_sum <- working %>%
   group_by(county_name, occupation_category) %>%
   summarise(persons = sum(persons))
 
-working_reshape <- dcast(working, county_name ~ occupation_category, sum, value.var = c("persons"))
+working_reshape <- dcast(working_sum, county_name ~ occupation_category, sum, value.var = c("persons"))
 
-persons_occupation_df <- working_reshape
+working_reshape <- working_reshape %>%
+  mutate(year = 2010)
 
-remove(working, working_sum, working_reshape)
+persons_occupation_df <- rbind(persons_occupation_df, working_reshape)
+
+# 2005: use the average of the two PUMS estimates
+occ_2000 <- persons_occupation_df %>%
+  filter(year == 2000) %>%
+  select(-year)
+occ_2000 <- melt(occ_2000, id = c("county_name"), variable.name = "occupation_category", value.name = "persons_2000", factorsAsStrings = FALSE)
+
+occ_2010 <- persons_occupation_df %>%
+  filter(year == 2010) %>%
+  select(-year)
+occ_2010 <- melt(occ_2010, id = c("county_name"), variable.name = "occupation_category", value.name = "persons_2010", factorsAsStrings = FALSE)
+
+occ_2005 <- left_join(occ_2000, occ_2010, by = c("county_name", "occupation_category"))
+
+occ_2005 <- occ_2005 %>%
+  mutate(persons = round((persons_2000 + persons_2010) / 2.0)) %>%
+  select(-persons_2000, -persons_2010)
+
+working_reshape <- dcast(occ_2005, county_name ~ occupation_category, sum, value.var = c("persons"))
+
+working_reshape <- working_reshape %>%
+  mutate(year = 2005)
+
+persons_occupation_df <- rbind(persons_occupation_df, working_reshape)
+
+remove(working, working_sum, occ_2000, occ_2005, occ_2010)
+
+```
+
+#### County Control: Age
+```{r county-age}
+# 2000: use decennial, SF1
+raw_census <- getCensus(name = "sf1", 
+                        vintage = 2000, 
+                        key = api_key$key, 
+                        vars=c("P012003", "P012004", "P012005", "P012006", "P012007", "P012008", "P012009", "P012010",
+                               "P012011", "P012012", "P012013", "P012014", "P012015", "P012016", "P012017", "P012018",
+                               "P012019", "P012020", "P012021", "P012022", "P012023", "P012024", "P012025",
+                               "P012027", "P012028", "P012029", "P012030", "P012031", "P012032", "P012033", "P012034", 
+                               "P012035", "P012036", "P012037", "P012038", "P012039", "P012040", "P012041", "P012042", 
+                               "P012043", "P012044", "P012045", "P012046", "P012047", "P012048", "P012049"), 
+                        region = paste("county:", COUNTY_FIPS_STRING, sep = ""),
+                        regionin = paste("state:", STATE_FIPS, sep = ""))
+
+working <- left_join(raw_census, county_codes, by = c("county"))
+
+age_df <- working %>%
+  mutate(age_00_05 = P012003 + P012027) %>%
+  mutate(age_05_09 = P012004 + P012028) %>%
+  mutate(age_10_14 = P012005 + P012029) %>%
+  mutate(age_15_17 = P012006 + P012030) %>%
+  mutate(age_18_19 = P012007 + P012031) %>%
+  mutate(age_20_20 = P012008 + P012032) %>%
+  mutate(age_21_21 = P012009 + P012033) %>%
+  mutate(age_22_24 = P012010 + P012034) %>%
+  mutate(age_25_29 = P012011 + P012035) %>%
+  mutate(age_30_34 = P012012 + P012036) %>%
+  mutate(age_35_39 = P012013 + P012037) %>%
+  mutate(age_40_44 = P012014 + P012038) %>%
+  mutate(age_45_49 = P012015 + P012039) %>%
+  mutate(age_50_54 = P012016 + P012040) %>%
+  mutate(age_55_59 = P012017 + P012041) %>%
+  mutate(age_60_61 = P012018 + P012042) %>%
+  mutate(age_62_64 = P012019 + P012043) %>%
+  mutate(age_65_66 = P012020 + P012044) %>%
+  mutate(age_67_69 = P012021 + P012045) %>%
+  mutate(age_70_74 = P012022 + P012046) %>%
+  mutate(age_75_79 = P012023 + P012047) %>%
+  mutate(age_80_84 = P012024 + P012048) %>%
+  mutate(age_85_up = P012025 + P012049) %>%
+  mutate(age_00_18 = age_00_05 + age_05_09 + age_10_14 + age_15_17 + round(0.5 * age_18_19)) %>%
+  mutate(age_19_64 = round(0.5 * age_18_19) + age_20_20 + age_21_21 + age_22_24 + age_25_29 + age_30_34 + age_35_39 + age_40_44 + age_45_49 +
+           age_50_54 + age_55_59 + age_60_61 + age_62_64) %>%
+  mutate(age_65_up = age_65_66 + age_67_69 + age_70_74 + age_75_79 + age_80_84 + age_85_up) %>%
+  mutate(age_00_14 = age_00_05 + age_05_09 + age_10_14) %>%
+  mutate(age_15_19 = age_15_17 + age_18_19) %>%
+  mutate(age_20_44 = age_20_20 + age_21_21 + age_22_24 + age_25_29 + age_30_34 + age_35_39 + age_40_44) %>%
+  mutate(age_45_64 = age_45_49 + age_50_54 + age_55_59 + age_60_61 + age_62_64) %>%
+  mutate(year = 2000) %>%
+  select(year, county_name, mtc_county_id, age_00_18, age_19_64, age_65_up, age_00_14, age_15_19, age_20_44, age_45_64)
+
+# START HERE: 2010 (SF1), then 2005 (?)
 
 ```
 

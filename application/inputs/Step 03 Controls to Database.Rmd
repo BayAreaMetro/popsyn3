@@ -17,7 +17,7 @@ Prepares database inputs for the Population Synthesizer. These procedures replac
 1.  Year-specific control tables (maz, taz, and county) written to MySQL database
 
 #### TODO
-1.  Check
+1.  Move the age category manipulation to Step 02
 
 ## Procedure
 
