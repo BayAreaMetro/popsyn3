@@ -17,8 +17,10 @@ Builds the control tables for the Population Synthesizer from Census data. The c
 1.  Year-specific control tables in CSV format
 
 #### TODO
-1. everything, early days
-2. build all county controls here and try to do TAZ with blockgroup to TAZ correspondence
+2. write to disk
+3. refactor STEP 03 to accommodate changes
+4. add new controls and batch runs
+5. try to do TAZ with blockgroup to TAZ correspondence
 
 ## Procedure
 
@@ -40,14 +42,6 @@ knitr::opts_chunk$set(cache=TRUE)
 
 #### Paramaters
 ```{r parameters}
-# year of the PUMS data
-# PUMS_YEAR = "2007_2011"
-# PUMS_YEAR = "2000"
-
-# input data configured for 2000, 2005, and 2010
-# YEAR = "year_2000"
-# YEAR = "year_2005"
-# YEAR = "year_2010"
 
 STATE_FIPS = "06"
 COUNTY_FIPS_STRING = "01,13,41,55,75,81,85,95,97"
@@ -73,15 +67,6 @@ CENSUS_API_KEY_FILE <- "C:/Users/dory/Desktop/census_api_key.csv"
 MYSQL_PASSWORD_FILE <- "C:/Users/dory/Desktop/mysql.csv"
 
 CONTROL_DIR <- "M:/Development/PopulationSynthesizer/PopSyn3/_working/mysql_version/input_data"
-
-# TODO add year 2000 pums to vector
-# TODO try reading the 2000 pums from the current pop syn dir into MySQL in Prepare Inputs.Rmd
-PUMS_DIR <- c("M:/Development/PopulationSynthesizer/PopSyn3/pums_data/acs2011_5yr/ca")
-PUMS_HH_FILE <- c(paste(PUMS_DIR, "ss11hca.csv", sep = "/"))
-PUMS_PER_FILE <- c(paste(PUMS_DIR, "ss11pca.csv", sep = "/"))
-
-CONTROL_DIR <- "M:/Development/PopulationSynthesizer/PopSyn3/_working/mysql_version/input_data"
-PUMS_DIR <- "M:/Development/PopulationSynthesizer/PopSyn3/pums_data/acs2011_5yr/ca"
 
 GEOG_CONTROL_FILE <-   paste(CONTROL_DIR, "geographies.csv", sep = "/")
 
@@ -122,6 +107,9 @@ mysql_passes <- mysql_passes %>%
 mysql_connection <- dbConnect(MySQL(), user = MYSQL_USER_NAME, password = mysql_passes$pwd, host = MYSQL_SERVER, dbname = MYSQL_DATABASE)
 
 # read the synthetic population tables
+pums_household_0711 <- dbReadTable(conn = mysql_connection, name = paste('household_table', "2007_2011", sep = '_'))
+pums_household_00   <- dbReadTable(conn = mysql_connection, name = paste('household_table', "2000", sep = '_'))
+
 pums_person_0711 <- dbReadTable(conn = mysql_connection, name = paste('person_table', "2007_2011", sep = '_'))
 pums_person_00   <- dbReadTable(conn = mysql_connection, name = paste('person_table', "2000", sep = '_'))
 
@@ -340,7 +328,7 @@ working_reshape <- working_reshape %>%
 
 persons_occupation_df <- rbind(persons_occupation_df, working_reshape)
 
-remove(working, working_sum, occ_2000, occ_2005, occ_2010)
+remove(working, working_sum, working_reshape, occ_2000, occ_2005, occ_2010)
 
 ```
 
@@ -396,7 +384,230 @@ age_df <- working %>%
   mutate(year = 2000) %>%
   select(year, county_name, mtc_county_id, age_00_18, age_19_64, age_65_up, age_00_14, age_15_19, age_20_44, age_45_64)
 
-# START HERE: 2010 (SF1), then 2005 (?)
+# 2010: use decennial, SF1
+raw_census <- getCensus(name = "sf1", 
+                        vintage = 2010, 
+                        key = api_key$key, 
+                        vars=c("P012I003", "P012I004", "P012I005", "P012I006", "P012I007", "P012I008", "P012I009", "P012I010",
+                               "P012I011", "P012I012", "P012I013", "P012I014", "P012I015", "P012I016", "P012I017", "P012I018",
+                               "P012I019", "P012I020", "P012I021", "P012I022", "P012I023", "P012I024", "P012I025",
+                               "P012I027", "P012I028", "P012I029", "P012I030", "P012I031", "P012I032", "P012I033", "P012I034", 
+                               "P012I035", "P012I036", "P012I037", "P012I038", "P012I039", "P012I040", "P012I041", "P012I042", 
+                               "P012I043", "P012I044", "P012I045", "P012I046", "P012I047", "P012I048", "P012I049"), 
+                        region = paste("county:", COUNTY_FIPS_STRING, sep = ""),
+                        regionin = paste("state:", STATE_FIPS, sep = ""))
+
+working <- left_join(raw_census, county_codes, by = c("county"))
+
+working <- working %>%
+  mutate(age_00_05 = P012I003 + P012I027) %>%
+  mutate(age_05_09 = P012I004 + P012I028) %>%
+  mutate(age_10_14 = P012I005 + P012I029) %>%
+  mutate(age_15_17 = P012I006 + P012I030) %>%
+  mutate(age_18_19 = P012I007 + P012I031) %>%
+  mutate(age_20_20 = P012I008 + P012I032) %>%
+  mutate(age_21_21 = P012I009 + P012I033) %>%
+  mutate(age_22_24 = P012I010 + P012I034) %>%
+  mutate(age_25_29 = P012I011 + P012I035) %>%
+  mutate(age_30_34 = P012I012 + P012I036) %>%
+  mutate(age_35_39 = P012I013 + P012I037) %>%
+  mutate(age_40_44 = P012I014 + P012I038) %>%
+  mutate(age_45_49 = P012I015 + P012I039) %>%
+  mutate(age_50_54 = P012I016 + P012I040) %>%
+  mutate(age_55_59 = P012I017 + P012I041) %>%
+  mutate(age_60_61 = P012I018 + P012I042) %>%
+  mutate(age_62_64 = P012I019 + P012I043) %>%
+  mutate(age_65_66 = P012I020 + P012I044) %>%
+  mutate(age_67_69 = P012I021 + P012I045) %>%
+  mutate(age_70_74 = P012I022 + P012I046) %>%
+  mutate(age_75_79 = P012I023 + P012I047) %>%
+  mutate(age_80_84 = P012I024 + P012I048) %>%
+  mutate(age_85_up = P012I025 + P012I049) %>%
+  mutate(age_00_18 = age_00_05 + age_05_09 + age_10_14 + age_15_17 + round(0.5 * age_18_19)) %>%
+  mutate(age_19_64 = round(0.5 * age_18_19) + age_20_20 + age_21_21 + age_22_24 + age_25_29 + age_30_34 + age_35_39 + age_40_44 + age_45_49 +
+           age_50_54 + age_55_59 + age_60_61 + age_62_64) %>%
+  mutate(age_65_up = age_65_66 + age_67_69 + age_70_74 + age_75_79 + age_80_84 + age_85_up) %>%
+  mutate(age_00_14 = age_00_05 + age_05_09 + age_10_14) %>%
+  mutate(age_15_19 = age_15_17 + age_18_19) %>%
+  mutate(age_20_44 = age_20_20 + age_21_21 + age_22_24 + age_25_29 + age_30_34 + age_35_39 + age_40_44) %>%
+  mutate(age_45_64 = age_45_49 + age_50_54 + age_55_59 + age_60_61 + age_62_64) %>%
+  mutate(year = 2010) %>%
+  select(year, county_name, mtc_county_id, age_00_18, age_19_64, age_65_up, age_00_14, age_15_19, age_20_44, age_45_64)
+
+age_df <- rbind(age_df, working)
+
+# 2005: use ACS, which is not available via API.
+# http://factfinder.census.gov/faces/tableservices/jsf/pages/productview.xhtml?pid=ACS_05_EST_B01001&prodType=table
+# enter manually
+county_name = c("Alameda", "Contra Costa", "Marin", "Napa", "San Francisco", "San Mateo", "Santa Clara", "Solano", "Sonoma")
+age_00_05 = c(106908,68260,13955,8100,39718,49797,131918,29678,28865)
+age_05_09 = c(104189,74666,12746,9037,23755,46707,112739,29571,25054)
+age_10_14 = c(93476,73569,14895,8596,29156,41749,117183,33619,35134)
+age_15_17 = c(57096,46312,8341,5282,16041,25568,64735,20278,20116)
+age_18_19 = c(32022,24508,3919,2994,9715,14697,35339,10688,10638)
+age_20_20 = c(15717,11824,2164,1042,6599,5810,19549,4840,6580)
+age_21_21 = c(20097,14319,1453,1379,6564,7616,14483,4789,6480)
+age_22_24 = c(49944,34136,6218,6030,25761,21761,61025,15397,17358)
+age_25_29 = c(92506,59040,9620,7029,54777,35869,103938,24888,27369)
+age_30_34 = c(108497,64526,12649,7905,78554,48873,139552,24985,25526)
+age_35_39 = c(113056,76663,18873,10175,75578,54828,143690,28250,29610)
+age_40_44 = c(120890,78074,17216,8711,65197,59092,145507,29022,35987)
+age_45_49 = c(113387,82380,20440,9926,54768,56481,132298,31840,37518)
+age_50_54 = c(100395,73702,22379,8804,51128,52187,111624,28666,36346)
+age_55_59 = c(88979,65471,21429,8444,43051,49321,98489,24059,33605)
+age_60_61 = c(24567,21145,7511,2866,14063,14471,30259,5899,10048)
+age_62_64 = c(35327,27245,8324,4438,19476,17813,38122,8777,12229)
+age_65_66 = c(18301,14408,4870,1875,13318,11565,21265,4274,6716)
+age_67_69 = c(23417,18036,5605,2172,16990,13380,27223,7038,7973)
+age_70_74 = c(34544,26253,7314,4383,20620,19542,44820,9708,12220)
+age_75_79 = c(28792,22246,6663,3005,21310,16403,33600,8335,10527)
+age_80_84 = c(22579,15664,5675,2528,17425,13691,22209,5333,9642)
+age_85_up = c(16622,14039,3350,2724,15513,12050,20323,5492,8309)
+
+working <- data.frame(county_name, 
+                      age_00_05, age_05_09, age_10_14, age_15_17, age_18_19, age_20_20, age_21_21, age_22_24,
+                      age_25_29, age_30_34, age_35_39, age_40_44, age_45_49, age_50_54, age_55_59, age_60_61, 
+                      age_62_64, age_65_66, age_67_69, age_70_74, age_75_79, age_80_84, age_85_up, 
+                      stringsAsFactors = FALSE)
+
+working <- left_join(raw_census, county_codes, by = c("county"))
+
+working <- working %>%
+  mutate(age_00_18 = age_00_05 + age_05_09 + age_10_14 + age_15_17 + round(0.5 * age_18_19)) %>%
+  mutate(age_19_64 = round(0.5 * age_18_19) + age_20_20 + age_21_21 + age_22_24 + age_25_29 + age_30_34 + age_35_39 + age_40_44 + age_45_49 +
+           age_50_54 + age_55_59 + age_60_61 + age_62_64) %>%
+  mutate(age_65_up = age_65_66 + age_67_69 + age_70_74 + age_75_79 + age_80_84 + age_85_up) %>%
+  mutate(age_00_14 = age_00_05 + age_05_09 + age_10_14) %>%
+  mutate(age_15_19 = age_15_17 + age_18_19) %>%
+  mutate(age_20_44 = age_20_20 + age_21_21 + age_22_24 + age_25_29 + age_30_34 + age_35_39 + age_40_44) %>%
+  mutate(age_45_64 = age_45_49 + age_50_54 + age_55_59 + age_60_61 + age_62_64) %>%
+  mutate(year = 2005) %>%
+  select(year, county_name, mtc_county_id, age_00_18, age_19_64, age_65_up, age_00_14, age_15_19, age_20_44, age_45_64)
+
+age_df <- rbind(age_df, working)
+
+remove(age_00_05, age_05_09, age_10_14, age_15_17, age_18_19, age_20_20, age_21_21, age_22_24,
+       age_25_29, age_30_34, age_35_39, age_40_44, age_45_49, age_50_54, age_55_59, age_60_61, 
+       age_62_64, age_65_66, age_67_69, age_70_74, age_75_79, age_80_84, age_85_up,
+       working, raw_census)
 
 ```
+
+#### County Control: Workers per Household
+```{r county-hh-workers}
+# 2000: use PUMS
+working <- pums_household_00 %>%
+  select(PUMA, hh_workers_from_esr, hweight) %>%
+  group_by(PUMA, hh_workers_from_esr) %>%
+  summarise(households = sum(hweight)) %>%
+  ungroup()
+
+working <- left_join(working, puma_to_county, by = c("PUMA"))
+
+working <- working %>%
+  group_by(county_name, hh_workers_from_esr) %>%
+  summarise(households = sum(households)) %>%
+  ungroup()
+
+working <- working %>%
+  mutate(variable = "ERROR") %>%
+  mutate(variable = ifelse(hh_workers_from_esr == 0, "hh_workers_0", variable)) %>%
+  mutate(variable = ifelse(hh_workers_from_esr == 1, "hh_workers_1", variable)) %>%
+  mutate(variable = ifelse(hh_workers_from_esr == 2, "hh_workers_2", variable)) %>%
+  mutate(variable = ifelse(hh_workers_from_esr > 2,  "hh_workers_3_plus", variable))
+
+working_reshape <- dcast(working, county_name ~ variable, sum, value.var = c("households"))
+
+working_reshape <- left_join(working_reshape, county_codes, by = c("county_name"))
+
+hh_workers_df <- working_reshape %>%
+  mutate(year = 2000) %>%
+  select(-county)
+
+# 2010: use PUMS
+working <- pums_household_0711 %>%
+  select(PUMA, hh_workers_from_esr, WGTP) %>%
+  group_by(PUMA, hh_workers_from_esr) %>%
+  summarise(households = sum(WGTP)) %>%
+  ungroup()
+
+working <- left_join(working, puma_to_county, by = c("PUMA"))
+
+working <- working %>%
+  group_by(county_name, hh_workers_from_esr) %>%
+  summarise(households = sum(households)) %>%
+  ungroup()
+
+working <- working %>%
+  mutate(variable = "ERROR") %>%
+  mutate(variable = ifelse(hh_workers_from_esr == 0, "hh_workers_0", variable)) %>%
+  mutate(variable = ifelse(hh_workers_from_esr == 1, "hh_workers_1", variable)) %>%
+  mutate(variable = ifelse(hh_workers_from_esr == 2, "hh_workers_2", variable)) %>%
+  mutate(variable = ifelse(hh_workers_from_esr > 2,  "hh_workers_3_plus", variable))
+
+working_reshape <- dcast(working, county_name ~ variable, sum, value.var = c("households"))
+
+working_reshape <- left_join(working_reshape, county_codes, by = c("county_name"))
+
+working_reshape <- working_reshape %>%
+  mutate(year = 2010) %>%
+  select(-county)
+
+hh_workers_df <- rbind(hh_workers_df, working_reshape)
+
+# START HERE
+# 2005: start with http://factfinder.census.gov/faces/tableservices/jsf/pages/productview.xhtml?pid=ACS_05_EST_B08202&prodType=table
+# use B08202 as a proxy
+# TODO: factor up for non-commuters?
+county_name = c("Alameda", "Contra Costa", "Marin", "Napa", "San Francisco", "San Mateo", "Santa Clara", "Solano", "Sonoma")
+hh_workers_0      = c(124157,  87323, 26147, 11714,  88249, 62455, 121032, 32441, 45808)
+hh_workers_1      = c(216343, 145254, 43234, 18142, 133830, 99921, 243797, 49443, 66796)
+hh_workers_2      = c(145179, 106185, 29565, 14308,  79223, 70778, 170640, 43740, 52430)
+hh_workers_3_plus = c(35701,   23340,  3447,  4038,  21097, 21073,  44661,  9000, 12178)
+
+working <- data.frame(county_name, hh_workers_0, hh_workers_1, hh_workers_2, hh_workers_3_plus, stringsAsFactors = FALSE)
+
+working <- left_join(working, county_codes, by = c("county_name"))
+
+working <- working %>%
+  mutate(year = 2005) %>%
+  select(-county)
+
+hh_workers_df <- rbind(hh_workers_df, working)
+
+remove(working, working_reshape, hh_workers_0, hh_workers_1, hh_workers_2, hh_workers_3_plus)
+
+```
+
+#### Write to Disk
+```{r data-writes}
+# bind data
+county_controls_df <- left_join(age_df, hh_gq_pop_df, by = c("year", "county_name", "mtc_county_id"))
+county_controls_df <- left_join(county_controls_df, hh_workers_df, by = c("year", "county_name", "mtc_county_id"))
+county_controls_df <- left_join(county_controls_df, household_size_df, by = c("year", "county_name", "mtc_county_id"))
+county_controls_df <- left_join(county_controls_df, persons_occupation_df, by = c("year", "county_name"))
+
+# 2000 write
+YEAR = 2000
+write <- county_controls_df %>%
+  filter(year == YEAR) %>%
+  select(-year)
+write.csv(write, file = paste(CONTROL_DIR, "/year_", YEAR, "/county_controls.csv", sep = ""), row.names = FALSE, quote = F)
+
+# 2005 write
+YEAR = 2005
+write <- county_controls_df %>%
+  filter(year == YEAR) %>%
+  select(-year)
+write.csv(write, file = paste(CONTROL_DIR, "/year_", YEAR, "/county_controls.csv", sep = ""), row.names = FALSE, quote = F)
+
+# 2010 write
+YEAR = 2010
+write <- county_controls_df %>%
+  filter(year == YEAR) %>%
+  select(-year)
+write.csv(write, file = paste(CONTROL_DIR, "/year_", YEAR, "/county_controls.csv", sep = ""), row.names = FALSE, quote = F)
+
+```
+
 

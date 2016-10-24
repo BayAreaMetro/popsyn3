@@ -58,7 +58,7 @@ HH_INCOME_QUARTILE_THRESH_3 = 100000
 #### Remote file locations
 ```{r remote-dir}
 MYSQL_PASSWORD_FILE <- "C:/Users/dory/Desktop/mysql.csv"
-F_OUTPUT <- paste("~/GitHub/popsyn3/application/validation/", YEAR, "_test_00.csv", sep = "")
+F_OUTPUT <- paste("~/GitHub/popsyn3/application/validation/", YEAR, "_test_04.csv", sep = "")
 ```
 
 #### Data reads
@@ -404,33 +404,35 @@ remove(working, county_synthesized)
 #### Bind data across geographies, control level
 ```{r bind}
 # combine controlled and uncontrolled
-county_validation <- rbind(county_validation, county_cross_validation)
+county_combined_validation <- rbind(county_validation, county_cross_validation)
 
 # combine across geographies
-validation_output <- rbind(maz_validation, taz_validation, county_validation)
+validation_output <- rbind(maz_validation, taz_validation, county_combined_validation)
+
+remove(county_validation, county_cross_validation, maz_validation, taz_validation, county_combined_validation)
 ```
 
 
 #### Scale distribution controls/uncontrolled measures
 # TODO: is this helpful? should a strong county persons control do the same thing?
 ```{r scaling}
-table(validation_output$measure_category)
+# table(validation_output$measure_category)
+# 
+# # compute scaling factors, set to 1.00 for persons and households controls
+# scaling_factors <- validation_output %>%
+#   group_by(measure_category) %>%
+#   summarise(person_adjustment    = sum(synthesized_persons) / sum(control_persons),
+#             household_adjustment = sum(synthesized_households) / sum(control_households)) %>%
+#   ungroup() %>%
+#   mutate(household_adjustment = ifelse(measure_category == "Households", 1.00, household_adjustment)) %>%
+#   mutate(person_adjustment    = ifelse(measure_category == "Persons",    1.00, person_adjustment))
+# 
+# validation_output <- left_join(validation_output, scaling_factors, by = c("measure_category"))
+# 
+# validation_output <- validation_output %>%
+#   mutate(control_households = control_households * household_adjustment) %>%
+#   mutate(control_persons    = control_persons * person_adjustment)
 
-# compute scaling factors, set to 1.00 for persons and households controls
-scaling_factors <- validation_output %>%
-  group_by(measure_category) %>%
-  summarise(person_adjustment    = sum(synthesized_persons) / sum(control_persons), 
-            household_adjustment = sum(synthesized_households) / sum(control_households)) %>%
-  ungroup() %>%
-  mutate(household_adjustment = ifelse(measure_category == "Households", 1.00, household_adjustment)) %>%
-  mutate(person_adjustment    = ifelse(measure_category == "Persons",    1.00, person_adjustment))
-
-validation_output <- left_join(validation_output, scaling_factors, by = c("measure_category"))
-
-validation_output <- validation_output %>%
-  mutate(control_households = control_households * household_adjustment) %>%
-  mutate(control_persons    = control_persons * person_adjustment)
-  
 
 ```
 

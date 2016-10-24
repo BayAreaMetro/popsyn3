@@ -17,7 +17,7 @@ Prepares database inputs for the Population Synthesizer. These procedures replac
 1.  Year-specific control tables (maz, taz, and county) written to MySQL database
 
 #### TODO
-1.  Move the age category manipulation to Step 02
+1.  
 
 ## Procedure
 
@@ -41,8 +41,8 @@ MYSQL_USER_NAME = "root"
 
 # input data configured for 2000, 2005, and 2010
 # YEAR = "year_2000"
-YEAR = "year_2005"
-# YEAR = "year_2010"
+# YEAR = "year_2005"
+YEAR = "year_2010"
 
 ```
 
@@ -54,8 +54,7 @@ CONTROL_DIR <- "M:/Development/PopulationSynthesizer/PopSyn3/_working/mysql_vers
 
 MAZ_CONTROL_FILE <-    paste(CONTROL_DIR, YEAR, "maz_data.csv", sep = "/")
 TAZ_CONTROL_FILE <-    paste(CONTROL_DIR, YEAR, "taz_data.csv", sep = "/")
-COUNTY_CONTROL_FILE <- paste(CONTROL_DIR, YEAR, "county_data.csv", sep = "/")
-AGE_CONTROL_FILE <-    paste(CONTROL_DIR, YEAR, "persons_by_age.csv", sep = "/")
+COUNTY_CONTROL_FILE <- paste(CONTROL_DIR, YEAR, "county_controls.csv", sep = "/")
 GEOG_CONTROL_FILE <-   paste(CONTROL_DIR, "geographies.csv", sep = "/")
 
 ```
@@ -64,8 +63,7 @@ GEOG_CONTROL_FILE <-   paste(CONTROL_DIR, "geographies.csv", sep = "/")
 ```{r data-reads}
 input_maz <- read.csv(MAZ_CONTROL_FILE, header = TRUE)
 input_taz <- read.csv(TAZ_CONTROL_FILE, header = TRUE)
-input_county <- read.csv(COUNTY_CONTROL_FILE, header = TRUE)
-input_age <- read.csv(AGE_CONTROL_FILE, header = TRUE)
+input_county <- read.csv(COUNTY_CONTROL_FILE, header = TRUE, stringsAsFactors = FALSE)
 input_geog <- read.csv(GEOG_CONTROL_FILE, header = TRUE)
 
 ```
@@ -114,20 +112,8 @@ remove(taz_geog, to_join_taz)
 
 #### Prepare County/Meta controls
 ```{r prep-county}
-control_totals_meta <- input_age %>%
-  select(county_full_name, age_category, persons_by_age) %>%
-  mutate(county_name = str_replace(county_full_name, " County", "")) %>%
-  mutate(age_int = str_replace(age_category, "\\+", "")) %>%
-  mutate(age_int = str_replace(age_int, "Ages ", "")) %>%
-  mutate(age_int = str_replace(age_int, "Age ", "")) %>%
-  mutate(age_int = as.numeric(age_int)) %>%
-  mutate(age_00_18 = ifelse(age_int < 19, persons_by_age, 0)) %>%
-  mutate(age_19_64 = ifelse(age_int >= 19 & age_int < 65, persons_by_age, 0)) %>%
-  mutate(age_65_up = ifelse(age_int >= 65, persons_by_age, 0))
-
-control_totals_meta <- control_totals_meta %>%
-  group_by(county_name) %>%
-  summarise(age_00_18 = sum(age_00_18), age_19_64 = sum(age_19_64), age_65_up = sum(age_65_up))
+# bring in hh size, hh workers, and occupation
+control_totals_meta <- input_county
 
 # create county crosswalk
 county_names <- input_county %>%
@@ -135,17 +121,9 @@ county_names <- input_county %>%
   mutate(county_name = paste(county_name_factor)) %>%
   select(-county_name_factor)
 
-control_totals_meta <- left_join(control_totals_meta, county_names, by = c("county_name"))
+control_totals_meta <- left_join(control_totals_meta, county_names, by = c("county_name", "mtc_county_id"))
 
-# bring in hh size, hh workers, and occupation
-to_join_meta <- input_county %>%
-  select(mtc_county_id, hh_size_1, hh_size_2, hh_size_3, hh_size_4_plus, hh_workers_0, hh_workers_1, hh_workers_2, hh_workers_3_plus,
-         occupation_management, occupation_professional, occupation_services,
-         occupation_retail, occupation_manual, occupation_military)
-
-control_totals_meta <- left_join(control_totals_meta, to_join_meta, by = c("mtc_county_id"))
-
-remove(county_names, to_join_meta)
+remove(county_names)
 
 ```
 

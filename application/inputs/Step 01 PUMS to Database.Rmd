@@ -20,9 +20,8 @@ Prepares PUMS database inputs for the Population Synthesizer. These procedures r
 1.  Software currently expects: 
   hh attributes: serialno, np, hincp, ten, bld, hh_workers_from_esr, hh_income_2010, adjinc, veh, hht, type, npf, hupac
   person attributes: sporder, agep, sex, occupation, wkhp, esr, schg, employed, wkw, mil, schl, indp02, indp07, occp02, occp10, rac1p, hisp
-So CT-RAMP may use some of these and the population synthesizer may use others. In either case, track down equivalents (if possible) in the 2000 PUMS if I decide to try and use the 2000 PUMS as the seed. 
+So CT-RAMP may use some of these and the population synthesizer may use others. In either case, track down equivalents (if possible) in the 2000 PUMS if I decide to try and use the 2000 PUMS as the seed.  Also need to rename the weight variables.
 
-2. hweight has missing values -- why?
 
 ## Procedure
 

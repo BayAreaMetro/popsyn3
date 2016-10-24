@@ -25,7 +25,7 @@ copy /B %cred_dir%\mysql_credentials.xml+%set_dir%\settings_no_credentials.xml %
 :: step 03: execute java
 echo %Time%
 echo Running population synthesizer...
-set JAVA_64_PATH=C:\Progra~1\Java\jre1.8.0_101
+set JAVA_64_PATH=C:\Progra~1\Java\jre1.8.0_111
 set CLASSPATH=runtime\config
 set CLASSPATH=%CLASSPATH%;runtime\*
 set CLASSPATH=%CLASSPATH%;runtime\lib\*
