@@ -3,14 +3,14 @@
 #' 	##############################################################	
  	
 suppressMessages(library(dplyr))	
-library(stringr)	
+suppressMessages(library(stringr)	)
 suppressMessages(library(RMySQL))	
  	
 #### Paramaters	
  	
-MYSQL_SERVER    = "localhost"	
-MYSQL_DATABASE  = "mtc_popsyn"	
-MYSQL_USER_NAME = "root" 	
+#MYSQL_SERVER    = "localhost"	
+#MYSQL_DATABASE  = "mtc_popsyn"	
+#MYSQL_USER_NAME = "root" 	
 	
 # build occupation code data frame	
 socp10_first_two = c(11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 31, 33, 35, 37, 39, 41, 43, 45, 47, 49, 51, 53, 55)	
@@ -28,19 +28,7 @@ socp10_occupation_df <- left_join(socp10_occupation_df, occupation_df, by = c("o
 remove(occupation_df, occupation_code, occupation_category, socp10_first_two)	
  	
 #### Remote file locations	
- 	
-MYSQL_PASSWORD_FILE <- "E:/Projects/Clients/mtc/TO2_Task2/mysql.csv"	
-	
-PUMS_0711_DIR <- "E:/Projects/Clients/mtc/TO2_Task2/MTCPopSynIII/data"	
-PUMS_0711_HH_FILE <- paste(PUMS_0711_DIR, "ss11hca.csv", sep = "/")	
-PUMS_0711_PER_FILE <- paste(PUMS_0711_DIR, "ss11pca.csv", sep = "/")	
-	
-PUMS_00_DIR <- "E:/Projects/Clients/mtc/TO2_Task2/PUMS/2000/FromMTC"	
-PUMS_00_HH_FILE <- paste(PUMS_00_DIR, "hbayarea5_2000.csv", sep = "/")	
-PUMS_00_PER_FILE <- paste(PUMS_00_DIR, "pbayarea5_2000.csv", sep = "/")	
-	
-CONTROL_DIR <- "E:/Projects/Clients/mtc/TO2_Task2/MTCPopSynIII/data"	
-GEOG_CONTROL_FILE <-   paste(CONTROL_DIR, "geographicCWalk.csv", sep = "/")	
+GEOG_CONTROL_FILE <-   paste(DATA_DIR, "geographicCWalk.csv", sep = "/")	
 	
 	
 #### Data reads	
@@ -64,18 +52,23 @@ input_pums_00_per <- input_pums_00_per %>%
  	
 # the geographies file reminds us we are using the 2000 Census PUMAs	
 input_geog <- input_geog %>%	
-  rename(PUMA = PUMA5CE00)	
+  rename(PUMA = PUMA5CE00)
+
+# create PUMA ID for GQ-PopSyn run [single PUMA ID for each county]
+input_geog$PUMA_GQ <- input_geog$MTCCountyID
+
+# create PUMA-PUMA_GQ crosswalk
+puma_GQ_Xwalk <- input_geog %>%
+  group_by(PUMA) %>%
+  summarise(PUMA_GQ = max(PUMA_GQ))
 	
-# get list of relevant pums	
+# get list of relevant puma	
 relevant_pumas <- unique(input_geog$PUMA)	
 	
 pums_hh  <- input_pums_0711_hh[input_pums_0711_hh$PUMA %in% relevant_pumas,]	
 pums_per <- input_pums_0711_per[input_pums_0711_per$PUMA %in% relevant_pumas,]	
-	
-# remove vacant units and group quarters households	
-pums_hh <- pums_hh %>%	
-  filter(!(NP ==0)) %>%	
-  filter(TYPE <= 1)	
+
+
 	
 # compute number of workers in the household	
 num_workers <- pums_per %>%
@@ -119,17 +112,6 @@ pums_hh <- pums_hh %>%
   mutate(hh_income_2010 = ifelse(ADJINC == 1039407, HINCP/1.0 * 1.007624 * 1.03154279/1.03154279, hh_income_2010)) %>%	
   mutate(hh_income_2010 = ifelse(ADJINC == 1018237, HINCP/1.0 * 1.018237 * 1.00000000/1.03154279, hh_income_2010))	
 	
-# give each hh a more manageable unique id	
-unique_hh_id <- 1:nrow(pums_hh)	
-pums_hh <- cbind(pums_hh, unique_hh_id)	
-rownames(pums_hh) <- 1:nrow(pums_hh)	
-	
-# set the initial person weight as the hh weight and give the person table the hhnum id	
-hh_weights <- pums_hh %>%	
-  select(SERIALNO, wgtp = WGTP, unique_hh_id)	
-	
-pums_per <- left_join(pums_per, hh_weights, by = c("SERIALNO"))	
-	
 # extract the occupation code	
 pums_per <- pums_per %>%	
   mutate(soc = str_trim(socp00, side = c("both"))) %>%	
@@ -144,13 +126,85 @@ table(pums_per$occupation_category)
 pums_per <- pums_per %>%	
   select(-occupation_category)	
   
-# set occupation to  zero where null and employed=0
-pums_per$occupation[is.na(pums_per$occupation) | pums_per$employed==0] <- 0
+# set occupation to  zero where null
+pums_per$occupation[is.na(pums_per$occupation)] <- 0
+
+# add dummy GQ fields to hh table
+pums_hh <- pums_hh %>%
+  mutate(GQFlag = 0) %>%
+  mutate(GQWGTP = 0) %>%
+  mutate(GQType = 0)
 	
-remove(hh_weights, num_workers, relevant_pumas)	
+remove(num_workers, relevant_pumas)	
+
+## separate GQ and HH records
+# institutional GQs
+pums_hh_gq <- pums_hh %>%
+  filter(TYPE >=3)
+pums_per_gq <- pums_per %>%
+  left_join(pums_hh_gq[,c("SERIALNO", "WGTP")],  by = c("SERIALNO")) %>%
+  filter(!is.na(WGTP)) %>%
+  select(-WGTP)
+
+# remove vacant units and  group quarters households	
+pums_hh <- pums_hh %>%	
+  filter(!(NP ==0)) %>%	
+  filter(TYPE <= 1)	
+
+pums_per <- pums_per %>%
+  left_join(pums_hh[,c("SERIALNO", "WGTP")],  by = c("SERIALNO"))
+
+#remove persons belongign to vacant units and  GQ households
+pums_per <- pums_per %>%
+  filter(!is.na(WGTP)) %>%
+  select(-WGTP)
+
+## Code GQ fields
+pums_hh_gq <- pums_hh_gq %>%
+  left_join(pums_per_gq[,c("SERIALNO", "PWGTP", "SCHG", "MIL")],  by = c("SERIALNO")) %>%
+  mutate(GQFlag = 1) %>%
+  mutate(GQWGTP = PWGTP) %>%
+  mutate(SCHG   = ifelse(is.na(SCHG), 0, SCHG)) %>%
+  mutate(MIL    = ifelse(is.na(MIL), 0, MIL)) %>%
+  mutate(GQType = ifelse(SCHG==6 | SCHG==7, 1, ifelse(MIL==1, 2, 3))) %>%
+  select(-PWGTP, -SCHG, -MIL)
 	
-	
-	
+#pums_hh  <- rbind(pums_hh, pums_hh_gq)	
+#pums_per <- rbind(pums_per, pums_per_gq)
+
+
+# give each hh a more manageable unique id	
+unique_hh_id <- 1:nrow(pums_hh)	
+pums_hh <- cbind(pums_hh, unique_hh_id)	
+rownames(pums_hh) <- 1:nrow(pums_hh)
+
+unique_hh_id <- 1:nrow(pums_hh_gq)	
+pums_hh_gq <- cbind(pums_hh_gq, unique_hh_id)	
+rownames(pums_hh_gq) <- 1:nrow(pums_hh_gq)
+
+
+# set the initial person weight as the hh weight and give the person table the hhnum id	
+hh_weights <- pums_hh %>%	
+  select(SERIALNO, WGTP, unique_hh_id)	
+pums_per <- left_join(pums_per, hh_weights, by = c("SERIALNO"))	
+
+hh_weights_gq <- pums_hh_gq %>%	
+  select(SERIALNO, WGTP, unique_hh_id)	
+pums_per_gq <- left_join(pums_per_gq, hh_weights_gq, by = c("SERIALNO"))
+
+remove(hh_weights, hh_weights_gq, input_pums_0711_hh, input_pums_0711_per)	
+
+# add GQ_PUMA IDs to GQ HH and person table
+pums_hh_gq <- pums_hh_gq %>%
+  left_join(puma_GQ_Xwalk, by = "PUMA")%>%
+  select(-PUMA)
+names(pums_hh_gq)[names(pums_hh_gq) == 'PUMA_GQ'] <- 'PUMA'
+
+pums_per_gq <- pums_per_gq %>%
+  left_join(puma_GQ_Xwalk, by = "PUMA") %>%
+  select(-PUMA)
+names(pums_per_gq)[names(pums_per_gq) == 'PUMA_GQ'] <- 'PUMA'
+
 #### Put 2007 to 2011 data into MySQL database	
  	
 # year of the PUMS data	
@@ -169,6 +223,11 @@ mysql_connection <- dbConnect(MySQL(), user = MYSQL_USER_NAME, password = mysql_
 # write the household and person tables	
 dbWriteTable(conn = mysql_connection, name = paste('household_table', PUMS_YEAR, sep = '_'), value = as.data.frame(pums_hh),  overwrite = TRUE)	
 dbWriteTable(conn = mysql_connection, name = paste('person_table', PUMS_YEAR, sep = '_'),    value = as.data.frame(pums_per), overwrite = TRUE)	
+
+# write the household and person tables for GQ records	
+dbWriteTable(conn = mysql_connection, name = paste('gqhousehold_table', PUMS_YEAR, sep = '_'), value = as.data.frame(pums_hh_gq),  overwrite = TRUE)	
+dbWriteTable(conn = mysql_connection, name = paste('gqperson_table', PUMS_YEAR, sep = '_'),    value = as.data.frame(pums_per_gq), overwrite = TRUE)	
+
 	
 dbDisconnect(mysql_connection)	
 	
@@ -179,10 +238,8 @@ relevant_pumas <- unique(input_geog$PUMA)
 	
 pums_hh  <- input_pums_00_hh[input_pums_00_hh$PUMA %in% relevant_pumas,]	
 pums_per <- input_pums_00_per[input_pums_00_per$PUMA %in% relevant_pumas,]	
-	
-# remove vacant units and group quarters households	
-pums_hh <- pums_hh %>%	
-  filter(!(hht == 0))	
+
+
 	
 # compute number of workers in the household	
 num_workers <- pums_per %>%	
@@ -203,23 +260,13 @@ pums_per <- pums_per %>%
 # household income	
 # inflation assumptions reference: http://analytics.mtc.ca.gov/foswiki/Main/inflationassumptions	
 pums_hh <- pums_hh %>%	
-  mutate(hh_income_2010 = hinc * 227.47 / 172.50)	
+  mutate(hh_income_2010 = hinc * 227.47 / 172.50)
 
-# give each hh a more manageable unique id	
-unique_hh_id <- 1:nrow(pums_hh)	
-	
-pums_hh <- cbind(pums_hh, unique_hh_id)	
-rownames(pums_hh) <- 1:nrow(pums_hh)	
-	
-# set the initial person weight as the hh weight and give the person table the hhnum id, remove NAs (group quarters)	
-hh_weights <- pums_hh %>%	
-  select(serialno, wgtp = hweight, unique_hh_id)	
-	
-pums_per <- left_join(pums_per, hh_weights, by = c("serialno"))	
-	
-pums_per <- pums_per %>%	
-  filter(!is.na(wgtp))	
-	
+# presence of people under 18
+pums_hh <- pums_hh %>%	
+  mutate(p18 = ifelse(is.na(p18), 0, p18)) %>%
+  mutate(pres_child = ifelse(p18>0, 1, 0))
+
 # extract the occupation code	
 # *appears* to be consistent with 2010 (http://www.census.gov/people/io/files/occ2000t.pdf)	
 pums_per <- pums_per %>%	
@@ -231,8 +278,72 @@ table(pums_per$occupation_category)
 	
 pums_per <- pums_per %>%	
   select(-occupation_category)	
+
+# add dummy GQ fields to hh table
+pums_hh <- pums_hh %>%
+  mutate(GQFlag = 0) %>%
+  mutate(GQWGTP = 0) %>%
+  mutate(GQType = 0)
 	
-remove(hh_weights, num_workers, relevant_pumas)	
+remove(num_workers, relevant_pumas)	
+
+## Separate HH and GQ records
+# institutional GQs
+pums_hh_gq <- pums_hh %>%
+  filter(hht == 0) %>%
+  rename(WGTP = hweight)
+pums_per_gq <- pums_per %>%
+  left_join(pums_hh_gq[,c("serialno", "WGTP")],  by = c("serialno")) %>%
+  filter(!is.na(WGTP)) %>%
+  select(-WGTP)
+
+# remove vacant units and group quarters households	
+pums_hh <- pums_hh %>%	
+  filter(!(hht == 0))	 %>%
+  rename(WGTP = hweight)
+pums_hh_gq <- pums_hh_gq %>%
+  left_join(pums_per_gq[,c("serialno", "pweight", "grade", "miltary")],  by = c("serialno")) %>%
+  mutate(GQFlag = 1) %>%
+  mutate(GQWGTP = pweight) %>%
+  mutate(grade   = ifelse(is.na(grade), 0, grade)) %>%
+  mutate(miltary    = ifelse(is.na(miltary), 0, miltary)) %>%
+  mutate(GQType = ifelse(grade==6 | grade==7, 1, ifelse(miltary==1, 2, 3))) %>%
+  select(-pweight, -grade, -miltary)
+
+#pums_hh  <- rbind(pums_hh, pums_hh_gq)	
+#pums_per <- rbind(pums_per, pums_per_gq)
+
+
+# give each hh a more manageable unique id	
+unique_hh_id <- 1:nrow(pums_hh)	
+pums_hh <- cbind(pums_hh, unique_hh_id)	
+rownames(pums_hh) <- 1:nrow(pums_hh)
+
+unique_hh_id <- 1:nrow(pums_hh_gq)	
+pums_hh_gq <- cbind(pums_hh_gq, unique_hh_id)	
+rownames(pums_hh_gq) <- 1:nrow(pums_hh_gq)
+
+# set the initial person weight as the hh weight and give the person table the hhnum id	
+hh_weights <- pums_hh %>%	
+  select(serialno, WGTP, unique_hh_id)	
+pums_per <- left_join(pums_per, hh_weights, by = c("serialno"))	
+
+hh_weights_gq <- pums_hh_gq %>%	
+  select(serialno, WGTP, unique_hh_id)	
+pums_per_gq <- left_join(pums_per_gq, hh_weights_gq, by = c("serialno"))
+
+remove(hh_weights, hh_weights_gq, input_pums_00_hh, input_pums_00_per)	
+
+# add GQ_PUMA IDs to GQ HH and person table
+pums_hh_gq <- pums_hh_gq %>%
+  left_join(puma_GQ_Xwalk, by = "PUMA")%>%
+  select(-PUMA)
+names(pums_hh_gq)[names(pums_hh_gq) == 'PUMA_GQ'] <- 'PUMA'
+
+pums_per_gq <- pums_per_gq %>%
+  left_join(puma_GQ_Xwalk, by = "PUMA") %>%
+  select(-PUMA)
+names(pums_per_gq)[names(pums_per_gq) == 'PUMA_GQ'] <- 'PUMA'
 	
  	
 #### Put 2000 data into MySQL database	
@@ -246,6 +357,10 @@ mysql_connection <- dbConnect(MySQL(), user = MYSQL_USER_NAME, password = mysql_
 # write the household and person tables	
 dbWriteTable(conn = mysql_connection, name = paste('household_table', PUMS_YEAR, sep = '_'), value = as.data.frame(pums_hh),  overwrite = TRUE)	
 dbWriteTable(conn = mysql_connection, name = paste('person_table', PUMS_YEAR, sep = '_'),    value = as.data.frame(pums_per), overwrite = TRUE)	
+
+# write the household and person tables for GQ records	
+dbWriteTable(conn = mysql_connection, name = paste('gqhousehold_table', PUMS_YEAR, sep = '_'), value = as.data.frame(pums_hh_gq),  overwrite = TRUE)	
+dbWriteTable(conn = mysql_connection, name = paste('gqperson_table', PUMS_YEAR, sep = '_'),    value = as.data.frame(pums_per_gq), overwrite = TRUE)
 	
 dbDisconnect(mysql_connection)	
 	
