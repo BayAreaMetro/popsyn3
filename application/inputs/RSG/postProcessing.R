@@ -154,6 +154,14 @@ if(Run_GQ_PopSyn=="YES"){
 
 ### Combine HH and GQ populations if both were run
 if(Run_HH_PopSyn=="YES" & Run_GQ_PopSyn=='YES'){
+  maxHHID <- max(hh.expanded$hhid)
+  maxHHID <- maxHHID + 1
+  hh_gq.expanded$hhid_old <- hh_gq.expanded$hhid
+  per_gq.expanded$hhid_old <- per_gq.expanded$hhid
+  hh_gq.expanded$hhid <- seq.int(maxHHID, maxHHID + nrow(hh_gq.expanded) - 1)
+  per_gq.expanded$hhid <- hh_gq.expanded$hhid[match(per_gq.expanded$hhid_old, hh_gq.expanded$hhid_old)]
+  hh_gq.expanded <- select( hh_gq.expanded, -hhid_old)
+  per_gq.expanded <- select( per_gq.expanded, -hhid_old)
   households <- rbind(hh.expanded, hh_gq.expanded)
   persons <- rbind(per.expanded, per_gq.expanded)
 }
