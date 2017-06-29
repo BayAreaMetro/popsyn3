@@ -84,15 +84,18 @@ if(Run_HH_PopSyn=="YES"){
   }
   
   per.expanded$hhid <- perHHID
+  #per.expanded$perid <- per.expanded$sporder
   
   # Select final set of variables to output
-  hh.expanded <- select(hh.expanded, -tempId, -mtc_county_id, -PUMA, -taz)
-  hh.expanded <- hh.expanded %>%
-    left_join(input_geog[, c("MAZ","TAZ","PUMA5CE00","MTCCountyID")], by = c("maz"="MAZ"))
-  
-  per.expanded <- select(per.expanded, -tempId, -mtc_county_id, -PUMA, -taz)
-  per.expanded <- per.expanded %>%
-    left_join(input_geog[, c("MAZ","TAZ","PUMA5CE00","MTCCountyID")], by = c("maz"="MAZ"))
+  #hh.expanded <- select(hh.expanded, -tempId, -mtc_county_id, -PUMA, -taz)
+  names(hh.expanded)[names(hh.expanded) == 'mtc_county_id'] <- 'MTCCountyID'
+  #hh.expanded <- hh.expanded %>%
+  #  left_join(input_geog[, c("MAZ","TAZ","PUMA5CE00","MTCCountyID")], by = c("maz"="MAZ"))
+  #
+  #per.expanded <- select(per.expanded, -tempId, -mtc_county_id, -PUMA, -taz)
+  names(per.expanded)[names(per.expanded) == 'mtc_county_id'] <- 'MTCCountyID'
+  #per.expanded <- per.expanded %>%
+  #  left_join(input_geog[, c("MAZ","TAZ","PUMA5CE00","MTCCountyID")], by = c("maz"="MAZ"))
 }
 
 
@@ -137,17 +140,20 @@ if(Run_GQ_PopSyn=="YES"){
   }
   
   per_gq.expanded$hhid <- perHHID
+  #per_gq.expanded$perid <- per_gq.expanded$sporder
   
   # bring the datasets to standard format
-  hh_gq.expanded <- select(hh_gq.expanded, -tempId, -region, -PUMA, -taz)
+  #hh_gq.expanded <- select(hh_gq.expanded, -tempId, -region, -PUMA, -taz)
   names(hh_gq.expanded)[names(hh_gq.expanded) == 'GQWGTP'] <- 'WGTP'
-  hh_gq.expanded <- hh_gq.expanded %>%
-    left_join(input_geog[, c("MAZ","TAZ","PUMA5CE00","MTCCountyID")], by = c("maz"="MAZ"))
+  names(hh_gq.expanded)[names(hh_gq.expanded) == 'region'] <- 'MTCCountyID'
+  #hh_gq.expanded <- hh_gq.expanded %>%
+  #  left_join(input_geog[, c("MAZ","TAZ","PUMA5CE00","MTCCountyID")], by = c("maz"="MAZ"))
   
-  per_gq.expanded <- select(per_gq.expanded, -tempId, -region, -PUMA, -taz)
+  #per_gq.expanded <- select(per_gq.expanded, -tempId, -region, -PUMA, -taz)
   names(per_gq.expanded)[names(per_gq.expanded) == 'GQWGTP'] <- 'WGTP'
-  per_gq.expanded <- per_gq.expanded %>%
-    left_join(input_geog[, c("MAZ","TAZ","PUMA5CE00","MTCCountyID")], by = c("maz"="MAZ"))
+  names(per_gq.expanded)[names(per_gq.expanded) == 'region'] <- 'MTCCountyID'
+  #per_gq.expanded <- per_gq.expanded %>%
+  #  left_join(input_geog[, c("MAZ","TAZ","PUMA5CE00","MTCCountyID")], by = c("maz"="MAZ"))
 }
 
 
@@ -177,11 +183,44 @@ if(Run_HH_PopSyn=="NO" & Run_GQ_PopSyn=='YES'){
 }
 
 
-# Write outputs
+### Write outputs
 hh_filename <- paste(WORKING_DIR, "/outputs/households_",YEAR, ".csv", sep="")
 per_filename <- paste(WORKING_DIR, "/outputs/persons_",YEAR, ".csv", sep="")
-write.csv(households, hh_filename, row.names = F)
-write.csv(persons, per_filename, row.names = F)
+
+#Assign unique person ID to person file
+households <- households[order(households$hhid), ]
+if(year_num<2010){
+  persons <- persons[order(persons$hhid, persons$pnum), ]
+}
+if(year_num>=2010){
+  persons <- persons[order(persons$hhid, persons$sporder), ]
+}
+PERID <- seq(1, nrow(persons))
+persons$PERID <- PERID
+
+# change all NAs to -9
+households[is.na(households)] <- -9
+households[households=="N.A."] <- -9
+households[households==""] <- -9
+persons[is.na(persons)] <- -9
+persons[persons=="N.A."] <- -9
+persons[persons==""] <- -9
+persons$occupation[persons$occupation==0] <- 999
+households$n <- 0
+persons$n <- 0
+
+# change the field names to CTRAMP format
+names(households)[names(households) == 'hh_workers_from_esr'] <- 'nwrkrs_esr'
+names(households)[names(households) == 'hh_income_2010'] <- 'hhincAdj'
+names(households)[names(households) == 'hhid'] <- 'HHID'
+
+names(persons)[names(persons) == 'occupation'] <- 'occp'
+names(persons)[names(persons) == 'hhid'] <- 'HHID'
+names(persons)[names(persons) == 'pnum'] <- 'sporder'
+#names(persons)[names(persons) == 'perid'] <- 'PERID'
+
+write.csv(households, hh_filename, row.names = F, quote = F)
+write.csv(persons, per_filename, row.names = F, quote = F)
 
 dbDisconnect(mysql_connection)
 
