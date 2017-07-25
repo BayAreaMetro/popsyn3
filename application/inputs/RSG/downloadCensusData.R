@@ -25,7 +25,7 @@ library(httr)
 ############
 getCensusData <- function(name, vintage, key, vars, region, regionin){
   
-  url <- paste("http://api.census.gov/data", vintage, name, sep = "/")
+  url <- paste("https://api.census.gov/data", vintage, name, sep = "/")
   url <- paste(url, "?get=", sep = "")
   var_list <- vars[1]
   if(length(vars)>1){
