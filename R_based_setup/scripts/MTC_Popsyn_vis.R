@@ -29,8 +29,6 @@ Parameters_File <- args[1]
 ## Read parameters from Parameters_File
 parameters <- read.csv(Parameters_File, header = TRUE)
 
-parameters <- read.csv("E:/Projects/Clients/mtc/TO2_Task2/MTCPopSynIII/runtime/config/parameters.csv", header = T)
-
 WORKING_DIR          <- trimws(paste(parameters$Value[parameters$Key=="WORKING_DIR"]))	
 MYSQL_SERVER         <- trimws(paste(parameters$Value[parameters$Key=="MYSQL_SERVER"]))
 MYSQL_DATABASE       <- trimws(paste(parameters$Value[parameters$Key=="MYSQL_DATABASE"]))
