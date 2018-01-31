@@ -1,0 +1,14 @@
+Key,Value 
+WORKING_DIR,E:\Projects\Clients\mtc\TO2_Task2\MTCPopSynIII 
+MYSQL_SERVER,localhost 
+MYSQL_DATABASE,mtc_popsyn 
+MYSQL_USER_NAME,root 
+MYSQL_PASSWORD_FILE,"E:\Projects\Clients\mtc\TO2_Task2\MTCPopSynIII\runtime\config\mysql.csv" 
+CENSUS_API_KEY_FILE,"E:\Projects\Clients\mtc\TO2_Task2\MTCPopSynIII\runtime\config\census_api_key.csv" 
+PopSyn_YEAR,year_2010 
+Run_HH_PopSyn,YES 
+Run_GQ_PopSyn,YES 
+Run_Step_1,YES 
+Run_Step_2,YES 
+Run_Step_3,YES 
+downloadCensus,TRUE 

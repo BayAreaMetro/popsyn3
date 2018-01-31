@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<targets>
+  <database>
+    <server>localhost</server>
+    <type>MYSQL</type>
+    <user>root</user>
+    <password>portlandmodel</password>
+    <dbName>mtc_popsyn</dbName>
+    <useJppf>false</useJppf>
+  </database>
+
+  <!-- Specify the PUMS data table names from which PUMA incidence tables are generated, as well as the field name for a unique identifier and the PUMS weight field name -->
+  <pumsData>
+    <idField>unique_hh_id</idField>
+    <pumaFieldName>PUMA</pumaFieldName>
+    <metaFieldName>region</metaFieldName>
+    <tazFieldName>taz</tazFieldName>
+    <mazFieldName>maz</mazFieldName>
+    <weightField>GQWGTP</weightField>
+    <hhTable>gqhousehold_table_2000</hhTable>
+    <persTable>gqperson_table_2000</persTable>
+    <pumsHhTable>gqhousehold_table_2000</pumsHhTable>
+    <pumsHhIdField>unique_hh_id</pumsHhIdField>
+    <pumsPersTable>gqperson_table_2000</pumsPersTable>
+    <maxExpansionFactor>100</maxExpansionFactor>
+    <synpopOutputHhTableName>synpop_hh_gq_2000</synpopOutputHhTableName>
+    <synpopOutputPersTableName>synpop_person_gq_2000</synpopOutputPersTableName>
+    <outputHhAttributes>serialno, persons, hinc, tenure, bldgsz, hh_workers_from_esr, hh_income_2010, vehicl, hht, unittype, npf, pres_child, GQFlag, GQType</outputHhAttributes>
+    <outputPersAttributes>pnum, age, sex, occupation, hours, esr, grade, employed, weeks, miltary, educ</outputPersAttributes>
+  </pumsData>
+
+  <!-- Specify the table name and name of id field for the MAZ control totals table -->
+  <mazControlsTable>
+    <mazTable id="1">
+      <table_name>control_totals_maz_gq_year_2000</table_name>
+      <id_field_name>maz</id_field_name>
+      <aggregation_level>MAZ</aggregation_level>
+    </mazTable>
+  </mazControlsTable>
+
+  <!-- Specify the table name and name of id field for the table of TAZ control totals that are not fields in the MAZ control total table -->
+  <tazControlsTable>
+    <tazTable id="1">
+      <table_name>control_totals_taz_year_2000</table_name>
+      <id_field_name>taz</id_field_name>
+      <aggregation_level>TAZ</aggregation_level>
+    </tazTable>
+  </tazControlsTable>
+
+  <!-- Specify the table name, id field name, and aggregation level for each table of META control totals -->
+  <metaControlsTables>
+    <metaTable id="1">
+      <table_name>control_totals_meta_gq_year_2000</table_name>
+      <id_field_name>mtc_county_id</id_field_name>
+      <aggregation_level>PUMA</aggregation_level>
+    </metaTable>
+  </metaControlsTables>
+
+  <target>
+    <!-- Total GQs in each MAZ Control#0 -->
+    <marginals>
+      <id>0</id>
+      <description>MAZ Level Control: Total Number of GQ persons</description>
+      <totalHouseholdsControl>true</totalHouseholdsControl>
+      <controlType>simple</controlType>
+      <geographyType>MAZ</geographyType>
+      <table>gqhousehold_table_2000</table>
+      <constraint id="1">
+        <importance>1000000000</importance>
+        <field>GQFlag</field>
+        <controlField>popgq</controlField>
+        <type>equality</type>
+        <value>1</value>
+      </constraint>
+    </marginals>
+  </target>
+  
+    <target>
+    <!-- Define conditions for GQ by GQ Type Control#2 -->
+    <!-- Three categories: 1 (University), 2 (Military), 3 (Other) -->
+    <marginals>
+      <id>1</id>
+      <description>MAZ Level Control: GQ Type</description>
+      <geographyType>MAZ</geographyType>
+      <controlType>simple</controlType>
+      <table>gqhousehold_table_2000</table>
+      <constraint id="1">
+        <importance>10000000</importance>
+        <field>GQType</field>
+        <controlField>univ</controlField>
+        <type>equality</type>
+        <value>1</value>
+      </constraint>
+      <constraint id="2">
+        <importance>10000000</importance>
+        <field>GQType</field>
+        <controlField>mil</controlField>
+        <type>equality</type>
+        <value>2</value>
+      </constraint>
+      <constraint id="3">
+        <importance>100000</importance>
+        <field>GQType</field>
+        <controlField>othnon</controlField>
+        <type>equality</type>
+        <value>3</value>
+      </constraint>
+    </marginals>
+  </target>
+
+  <target>
+    <!-- Define conditions for person occupation categories Control#5 -->
+    <!-- Six categories: Management, Professional, Services, Retail, Manual, Military -->
+    <marginals>
+      <id>2</id>
+      <description>County Level META Control: Total GQ population</description>
+      <geographyType>META</geographyType>
+      <controlType>simple</controlType>
+      <table>gqhousehold_table_2000</table>
+      <constraint id="1">
+        <importance>1000</importance>
+        <field>GQFlag</field>
+        <controlField>GQPOP</controlField>
+        <type>equality</type>
+        <value>1</value>
+      </constraint>
+    </marginals>
+  </target>
+
+</targets>

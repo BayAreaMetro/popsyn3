@@ -24,6 +24,7 @@ if (!"hydroGOF" %in% installed.packages()) install.packages("hydroGOF", repos='h
 ####################################################################################################################
 
 ## Read parameters from Parameters_File
+Parameters_File <- "E:/Projects/Clients/mtc/TO2_Task2/MTCPopSynIII/runtime/config/parameters.csv"
 parameters <- read.csv(Parameters_File, header = TRUE)
 
 WORKING_DIR          <- trimws(paste(parameters$Value[parameters$Key=="WORKING_DIR"]))	
