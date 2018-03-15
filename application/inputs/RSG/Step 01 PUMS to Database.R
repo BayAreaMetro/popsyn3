@@ -11,6 +11,9 @@ suppressMessages(library(RMySQL))
 #MYSQL_SERVER    = "localhost"	
 #MYSQL_DATABASE  = "mtc_popsyn"	
 #MYSQL_USER_NAME = "root" 	
+#DATA_DIR <- "E:/Projects/Clients/mtc/TO2_Task2/MTCPopSynIII/data"
+#YEAR <- "year_2010"
+
 	
 # build occupation code data frame	
 socp10_first_two = c(11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 31, 33, 35, 37, 39, 41, 43, 45, 47, 49, 51, 53, 55)	

@@ -213,11 +213,24 @@ persons$n <- 0
 names(households)[names(households) == 'hh_workers_from_esr'] <- 'nwrkrs_esr'
 names(households)[names(households) == 'hh_income_2010'] <- 'hhincAdj'
 names(households)[names(households) == 'hhid'] <- 'HHID'
+names(households)[names(households) == 'persons'] <- 'np'
+names(households)[names(households) == 'hinc'] <- 'hincp'
+names(households)[names(households) == 'tenure'] <- 'ten'
+names(households)[names(households) == 'bldgsz'] <- 'bld'
+names(households)[names(households) == 'vehicl'] <- 'veh'
+names(households)[names(households) == 'unittype'] <- 'type'
+names(households)[names(households) == 'pres_child'] <- 'hupac'
 
 names(persons)[names(persons) == 'occupation'] <- 'occp'
 names(persons)[names(persons) == 'hhid'] <- 'HHID'
 names(persons)[names(persons) == 'pnum'] <- 'sporder'
 #names(persons)[names(persons) == 'perid'] <- 'PERID'
+names(persons)[names(persons) == 'age'] <- 'agep'
+names(persons)[names(persons) == 'hours'] <- 'wkhp'
+names(persons)[names(persons) == 'grade'] <- 'schg'
+names(persons)[names(persons) == 'weeks'] <- 'wkw'
+names(persons)[names(persons) == 'miltary'] <- 'mil'
+names(persons)[names(persons) == 'educ'] <- 'schl'
 
 write.csv(households, hh_filename, row.names = F, quote = F)
 write.csv(persons, per_filename, row.names = F, quote = F)
