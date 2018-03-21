@@ -1,6 +1,7 @@
 .Rproj.user/
 .Rhistory
 .Rproj.user
+src/
 build/
 release/
 application/inputs/Prepare_Inputs_cache
