@@ -60,7 +60,7 @@ countyData <- read.csv(file.path(INPUT_CONTROLS_DIR, "2000", "countyData.csv"))
 ctpp2000   <- read.csv(file.path(CENSUS_DATA_DIR, "CensusData2000", "CTPP2000", "491968900_P1-062.csv"))
 
 ### Read PopSyn XWalk
-popsyn_xwalk <- read.csv(paste(WORKING_DIR, "data\\geographicCWalk.csv", sep = "\\"))
+popsyn_xwalk <- read.csv(file.path(GEOXWALK_DIR, "geographicCWalk.csv"))
 ### Build the PUMA to County cross-walk	
 popsyn_xwalk <- popsyn_xwalk %>%	
   rename(county_name = COUNTYNAME)
@@ -113,7 +113,7 @@ dbDisconnect(mysql_connection)
 #  pums_pop <- pums_pop %>%
 #    left_join(pums_hh, by = "PUMA")
 #  
-#  write.csv(pums_pop, paste(outputDir, "PUMA_Distributions.csv", sep = "\\"), row.names = F)
+#  write.csv(pums_pop, file.path(CENSUS_DATA_DIR,"CensusData2000","PUMA_Distributions.csv"), row.names = F)
 #}
 PUMA_Dist <- read.csv(file.path(CENSUS_DATA_DIR, "CensusData2000","PUMA_Distributions.csv"))
 

@@ -55,9 +55,9 @@ SET Run_Validation=YES
 :: Switches [YES/NO] for running data processing steps
 :: 1. Step 01 PUMS to Database, 2. Step 02 Build Controls, 3. Step 03 Controls to Database
 :: ----------------------------------------------------------------
-SET Run_Step_1=NO
-SET Run_Step_2=NO
-SET Run_Step_3=NO
+SET Run_Step_1=YES
+SET Run_Step_2=YES
+SET Run_Step_3=YES
 
 :: Need to download Census data only once for building controls, can be read for next time [set to TRUE/FALSE]
 :: 2000 controls shoudl be build before building 2005. 2010 controls should be build before 2015

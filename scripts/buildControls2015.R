@@ -15,16 +15,15 @@ suppressMessages(library(dplyr))
 # INPUTS
 #########
 
-#DATA_DIR <- paste(WORKING_DIR, paste("data"), sep = "\\")
-controls2010Dir <- paste(WORKING_DIR, paste("data\\year_2010"), sep = "\\")
-controls2015Dir <- paste(WORKING_DIR, paste("data\\year_2015"), sep = "\\")
+controls2010Dir <- file.path(INTERMEDIATE_DIR, "year_2010")
+controls2015Dir <- file.path(INTERMEDIATE_DIR, "year_2015")
 
 # read 2010 controls
-maz2010 <- read.csv(paste(controls2010Dir, "mazControlFile.csv", sep = "\\"))
-taz2010 <- read.csv(paste(controls2010Dir, "tazControlFile.csv", sep = "\\"))
-county2010 <- read.csv(paste(controls2010Dir, "countyControlFile.csv", sep = "\\"))
+maz2010    <- read.csv(file.path(controls2010Dir, "mazControlFile.csv"))
+taz2010    <- read.csv(file.path(controls2010Dir, "tazControlFile.csv"))
+county2010 <- read.csv(file.path(controls2010Dir, "countyControlFile.csv"))
 
-geogXWalk <- read.csv(paste(DATA_DIR, "geographicCWalk.csv", sep = "\\"))
+geogXWalk <- read.csv(file.path(GEOXWALK_DIR, "geographicCWalk.csv"))
 tazCounty <- geogXWalk[,c("TAZ_ORIGINAL", "MTCCountyID")] %>%
   group_by(TAZ_ORIGINAL) %>%
   summarise(MTCCountyID = max(MTCCountyID))
@@ -227,9 +226,9 @@ tazControlFile <- tempTAZ05 %>%
   
 # WRITE OUTPUTS
 ###############
-write.csv(mazControlFile, paste(controls2015Dir, "mazControlFile.csv", sep = "\\"), row.names = F)
-write.csv(tazControlFile, paste(controls2015Dir, "tazControlFile.csv", sep = "\\"), row.names = F)
-write.csv(tempCounty05, paste(controls2015Dir, "countyControlFile.csv", sep = "\\"), row.names = F)
+write.csv(mazControlFile, file.path(controls2015Dir, "mazControlFile.csv"   ), row.names = F)
+write.csv(tazControlFile, file.path(controls2015Dir, "tazControlFile.csv"   ), row.names = F)
+write.csv(tempCounty05,   file.path(controls2015Dir, "countyControlFile.csv"), row.names = F)
 
 
 

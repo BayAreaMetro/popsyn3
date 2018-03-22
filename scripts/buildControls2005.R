@@ -14,23 +14,21 @@ suppressMessages(library(dplyr))
 
 # INPUTS
 #########
-
-#dataDir <- paste(WORKING_DIR, paste("data"), sep = "\\")
-controls2000Dir <- paste(WORKING_DIR, paste("data\\year_2000"), sep = "\\")
-controls2005Dir <- paste(WORKING_DIR, paste("data\\year_2005"), sep = "\\")
+controls2000Dir <- file.path(INTERMEDIATE_DIR, "year_2000")
+controls2005Dir <- file.path(INTERMEDIATE_DIR, "year_2005")
 
 # read 2000 controls
-maz2000 <- read.csv(paste(controls2000Dir, "mazControlFile.csv", sep = "\\"))
-taz2000 <- read.csv(paste(controls2000Dir, "tazControlFile.csv", sep = "\\"))
-county2000 <- read.csv(paste(controls2000Dir, "countyControlFile.csv", sep = "\\"))
+maz2000    <- read.csv(file.path(controls2000Dir, "mazControlFile.csv"))
+taz2000    <- read.csv(file.path(controls2000Dir, "tazControlFile.csv"))
+county2000 <- read.csv(file.path(controls2000Dir, "countyControlFile.csv"))
 
-geogXWalk <- read.csv(paste(DATA_DIR, "geographicCWalk.csv", sep = "\\"))
-tazCounty <- geogXWalk[,c("TAZ_ORIGINAL", "MTCCountyID")] %>%
+geogXWalk  <- read.csv(file.path(GEOXWALK_DIR, "geographicCWalk.csv"))
+tazCounty  <- geogXWalk[,c("TAZ_ORIGINAL", "MTCCountyID")] %>%
   group_by(TAZ_ORIGINAL) %>%
   summarise(MTCCountyID = max(MTCCountyID))
 
 # read 2005 data
-maz2005Data <- read.csv(paste(controls2005Dir, "mazData.csv", sep = "\\"))
+maz2005Data <- read.csv(file.path(controls2005Dir, "mazData.csv"))
 
 # PROCESS DATA
 ##############
@@ -225,9 +223,9 @@ tazControlFile <- tempTAZ05 %>%
   
 # WRITE OUTPUTS
 ###############
-write.csv(mazControlFile, paste(controls2005Dir, "mazControlFile.csv", sep = "\\"), row.names = F)
-write.csv(tazControlFile, paste(controls2005Dir, "tazControlFile.csv", sep = "\\"), row.names = F)
-write.csv(tempCounty05, paste(controls2005Dir, "countyControlFile.csv", sep = "\\"), row.names = F)
+write.csv(mazControlFile, file.path(controls2005Dir, "mazControlFile.csv"   ), row.names = F)
+write.csv(tazControlFile, file.path(controls2005Dir, "tazControlFile.csv"   ), row.names = F)
+write.csv(tempCounty05,   file.path(controls2005Dir, "countyControlFile.csv"), row.names = F)
 
 
 

@@ -8,7 +8,7 @@
 # - PUMS_0711_PER_FILE
 # Additionally, reads a geographic crosswalk file in order to filter down to the
 # appropriate PUMAS:
-# - GEOG_CONTROL_FILE
+# - GEOXWALK_DIR\geographicCWalk.csv
 # The script processes the PUMS persons and households, including
 # - splitting group quarters from non-group quarters
 # - adjusting income to (year 2010 dollars)
@@ -54,7 +54,7 @@ socp10_occupation_df <- left_join(socp10_occupation_df, occupation_df, by = c("o
 remove(occupation_df, occupation_code, occupation_category, socp10_first_two)	
  	
 #### Remote file locations	
-GEOG_CONTROL_FILE <-   file.path(getwd(), "..", "data", "geographicCWalk.csv") # todo: should this go in a better named dir?
+GEOG_CONTROL_FILE <-   file.path(GEOXWALK_DIR, "geographicCWalk.csv")
 	
 	
 #### Data reads	

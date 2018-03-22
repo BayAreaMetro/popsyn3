@@ -1,9 +1,9 @@
 Key,Value 
-WORKING_DIR,C:\Users\lzorn\Documents\popsyn3\R_based_setup 
-CENSUS_DATA_DIR,C:\Users\lzorn\Documents\popsyn3\R_based_setup\census_data 
+WORKING_DIR,C:\Users\lzorn\Documents\popsyn3 
+CENSUS_DATA_DIR,C:\Users\lzorn\Documents\popsyn3\census_data 
 INPUT_CONTROLS_DIR,C:\Users\lzorn\Box\Modeling and Surveys\Development\Travel Model Two Development\Population Synthesis\Application\input_controls 
 GEOXWALK_DIR,C:\Users\lzorn\Box\Modeling and Surveys\Development\Travel Model Two Development\Population Synthesis\Application\GeographicXWalk 
-INTERMEDIATE_DIR,C:\Users\lzorn\Documents\popsyn3\R_based_setup\outputs\intermediate 
+INTERMEDIATE_DIR,C:\Users\lzorn\Documents\popsyn3\outputs\intermediate 
 MYSQL_SERVER,localhost 
 MYSQL_DATABASE,mtc_popsyn 
 MYSQL_USER_NAME,root 
@@ -12,7 +12,7 @@ CENSUS_API_KEY_FILE,C:\Users\lzorn\Box\Modeling and Surveys\Development\Travel M
 PopSyn_YEAR,year_2000 
 Run_HH_PopSyn,YES 
 Run_GQ_PopSyn,YES 
-Run_Step_1,NO 
-Run_Step_2,NO 
-Run_Step_3,NO 
+Run_Step_1,YES 
+Run_Step_2,YES 
+Run_Step_3,YES 
 downloadCensus,TRUE 

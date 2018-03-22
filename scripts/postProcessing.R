@@ -28,10 +28,7 @@ Run_GQ_PopSyn        <- trimws(paste(parameters$Value[parameters$Key=="Run_GQ_Po
 
 setwd(paste(WORKING_DIR, "scripts", sep="/"))
 
-DATA_DIR <- paste(WORKING_DIR, "data", sep="/")
-
-GEOG_CONTROL_FILE <-   paste(DATA_DIR, "geographicCWalk.csv", sep = "/")	
-input_geog <- read.csv(GEOG_CONTROL_FILE, header = TRUE)	
+input_geog <- read.csv(file.path(GEOXWALK_DIR, "geographicCWalk.csv"), header = TRUE)
 
 # get password	
 mysql_passes <- read.csv(MYSQL_PASSWORD_FILE, header = TRUE)	
@@ -184,8 +181,6 @@ if(Run_HH_PopSyn=="NO" & Run_GQ_PopSyn=='YES'){
 
 
 ### Write outputs
-hh_filename <- paste(WORKING_DIR, "/outputs/households_",YEAR, ".csv", sep="")
-per_filename <- paste(WORKING_DIR, "/outputs/persons_",YEAR, ".csv", sep="")
 
 #Assign unique person ID to person file
 households <- households[order(households$hhid), ]
@@ -232,8 +227,11 @@ names(persons)[names(persons) == 'weeks'] <- 'wkw'
 names(persons)[names(persons) == 'miltary'] <- 'mil'
 names(persons)[names(persons) == 'educ'] <- 'schl'
 
-write.csv(households, hh_filename, row.names = F, quote = F)
-write.csv(persons, per_filename, row.names = F, quote = F)
+hh_filename  <- file.path(OUTPUT_DIR, paste0("households_",YEAR,".csv"))
+per_filename <- file.path(OUTPUT_DIR, paste0("persons_",YEAR,".csv"))
+
+write.csv(households, hh_filename,  row.names = F, quote = F)
+write.csv(persons,    per_filename, row.names = F, quote = F)
 
 dbDisconnect(mysql_connection)
 

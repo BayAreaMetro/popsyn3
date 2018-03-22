@@ -25,8 +25,8 @@ suppressMessages(library(reshape2))
 # INPUTS
 #########
 
-outputDir <- paste(WORKING_DIR, "data\\CensusData2010", sep = "\\")
-censusDownloadDir <- paste(outputDir, "Downloads", sep = "\\")
+outputDir         <- file.path(CENSUS_DATA_DIR, "CensusData2010")
+censusDownloadDir <- file.path(outputDir, "Downloads")
 dir.create(censusDownloadDir, showWarnings = F)
 
 STATE_FIPS = "06"	
@@ -52,13 +52,13 @@ mysql_passes <- mysql_passes %>%
   filter(user == MYSQL_USER_NAME) %>%	
   mutate(pwd = paste(pwd))
 # Read HHs by MAZ and TAZ
-mazData    <- read.csv(paste(WORKING_DIR, "data\\2010\\mazData.csv", sep = "\\"))
-tazData    <- read.csv(paste(WORKING_DIR, "data\\2010\\tazData.csv", sep = "\\"))
+mazData    <- read.csv(file.path(INPUT_CONTROLS_DIR, "2010", "mazData.csv"))
+tazData    <- read.csv(file.path(INPUT_CONTROLS_DIR, "2010", "tazData.csv"))
 colnames(tazData) <- c("TAZ_ORIGINAL", "inc_00_30", "inc_30_60", "inc_60_100", "inc_100p")
-countyData <- read.csv(paste(WORKING_DIR, "data\\2010\\countyData.csv", sep = "\\"))
+countyData <- read.csv(file.path(INPUT_CONTROLS_DIR, "2010", "countyData.csv"))
 
 # Read PopSyn XWalk
-popsyn_xwalk <- read.csv(paste(WORKING_DIR, "data\\geographicCWalk.csv", sep = "\\"))
+popsyn_xwalk <- read.csv(file.path(GEOXWALK_DIR, "geographicCWalk.csv")
 ### Build the PUMA to County cross-walk	
 popsyn_xwalk <- popsyn_xwalk %>%	
   rename(county_name = COUNTYNAME)
@@ -111,17 +111,17 @@ dbDisconnect(mysql_connection)
 #    pums_pop <- pums_pop %>%
 #      left_join(pums_hh, by = "PUMA")
 #    
-#  write.csv(pums_pop, paste(outputDir, "PUMA_Distributions.csv", sep = "\\"), row.names = F)
+#  write.csv(pums_pop, file.path(CENSUS_DATA_DIR,"CensusData2010","PUMA_Distributions.csv"), row.names = F)
 #}
 
-PUMA_Dist <- read.csv(paste(outputDir, "PUMA_Distributions.csv", sep = "\\"))
+PUMA_Dist <- read.csv(file.path(CENSUS_DATA_DIR,"CensusData2010","PUMA_Distributions.csv"))
 
 # Read MAZ-BLK_GRP crosswalk
-MAZ_BG10 <- read.csv(paste(DATA_DIR, "GeographicXWalk\\GeogXWalk2010_MAZ_BG.csv", sep = "\\"))
+MAZ_BG10 <- read.csv(file.path(GEOXWALK_DIR, "GeogXWalk2010_MAZ_BG.csv"))
 
 # Read TAZ-CT XWalk
-TAZ_CT10 <- read.csv(paste(DATA_DIR, "GeographicXWalk\\GeogXWalk2010_TAZ_CT_PUMA_CY.csv", sep = "\\"))
-TAZ_CT00 <- read.csv(paste(DATA_DIR, "GeographicXWalk\\GeogXWalk2000_TAZ_CT_PUMA_CY.csv", sep = "\\"))
+TAZ_CT10 <- read.csv(file.path(GEOXWALK_DIR, "GeogXWalk2010_TAZ_CT_PUMA_CY.csv"))
+TAZ_CT00 <- read.csv(file.path(GEOXWALK_DIR, "GeogXWalk2000_TAZ_CT_PUMA_CY.csv"))
 
 
 # DOWNLOAD DATA
@@ -821,7 +821,7 @@ mazControlFile <- select(mazControlFile, -MAZSEQ, -HHSize_Diff, -HHSize_Max, -HH
                          -HHType_Max, -Gender_Diff, -Gender_Max, -Age2_Diff, -Age2_Max, 
                          -Male, -Female, -Age_00_19, -Age_20_34, -Age_35_64, -Age_65_up, -Pop, -tempSum)
 colnames(mazControlFile)[colnames(mazControlFile) == 'MAZ_ORIGINAL'] <- 'maz_original'
-write.csv(mazControlFile, paste(DATA_DIR, YEAR, "mazControlFile.csv", sep = "/"), row.names = F)
+write.csv(mazControlFile, file.path(INTERMEDIATE_DIR, YEAR, "mazControlFile.csv"), row.names = F)
 
 # -TAZ_HH, -TAZ_POP,
 tazControlFile <- select(tazControlFile, -TAZSEQ, -Kids_Diff, -Kids_Max, -Workers_Diff, -Workers_Max, 
@@ -830,17 +830,10 @@ tazControlFile <- select(tazControlFile, -TAZSEQ, -Kids_Diff, -Kids_Max, -Worker
                          -GQ_00_17,	-GQ_18_64,	-GQ_65_up,	-TOT_GQ, -CT10_GQ, -CT_GQ_00_17, -CT_GQ_18_64, 	
                          -CT_GQ_65_up, -CT10_Age_00_19, -CT10_Age_20_34, -CT10_Age_35_64, -CT10_Age_65_up, -TAZ_GQ)
 colnames(tazControlFile)[colnames(tazControlFile) == 'TAZ_ORIGINAL'] <- 'taz_original'
-write.csv(tazControlFile, paste(DATA_DIR, YEAR, "tazControlFile.csv", sep = "/"), row.names = F)
+write.csv(tazControlFile, file.path(INTERMEDIATE_DIR, YEAR, "tazControlFile.csv"), row.names = F)
 
 countyControlFile <- select(countyControlFile, mtc_county_id, county_name, occupation_management, occupation_manual, 
                             occupation_military, occupation_professional,occupation_retail, 
                             occupation_services)
 countyControlFile[is.na(countyControlFile)] <-0
-write.csv(countyControlFile, paste(DATA_DIR, YEAR, "countyControlFile.csv", sep = "/"), row.names = F)
-
-  
-  
-
-  
-  
-
+write.csv(countyControlFile, file.path(INTERMEDIATE_DIR, YEAR, "countyControlFile.csv"), row.names = F)
