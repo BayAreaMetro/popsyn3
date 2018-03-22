@@ -1,6 +1,7 @@
 # ---	
 # title: "Step 03 Controls to Database"	
 # author: "David Ory"	
+message("=== Running Step 03 Controls to Database.R")
 
 suppressMessages(library(dplyr))	
 library(stringr)	
@@ -10,12 +11,12 @@ suppressMessages(library(RMySQL))
 #YEAR <- "year_2010"
 
 #####
-MAZ_CONTROL_FILE        <- paste(DATA_DIR, YEAR, "mazControlFile.csv", sep = "/")	
-TAZ_CONTROL_FILE        <- paste(DATA_DIR, YEAR, "tazControlFile.csv", sep = "/")	
-COUNTY_CONTROL_FILE     <- paste(DATA_DIR, YEAR, "countyControlFile.csv", sep = "/")	
-MAZ_CONTROL_FILE_GQ     <- paste(DATA_DIR, YEAR, "gq00051015_maz.csv", sep = "/")
-GQ_COUNTY_CONTROL_FILE  <- paste(DATA_DIR, YEAR, "meta_controls_gq.csv", sep = "/")
-GEOG_CONTROL_FILE       <- paste(DATA_DIR, "geographicCWalk.csv", sep = "/")
+MAZ_CONTROL_FILE        <- file.path(INTERMEDIATE_DIR, YEAR, "mazControlFile.csv")
+TAZ_CONTROL_FILE        <- file.path(INTERMEDIATE_DIR, YEAR, "tazControlFile.csv")
+COUNTY_CONTROL_FILE     <- file.path(INTERMEDIATE_DIR, YEAR, "countyControlFile.csv")
+MAZ_CONTROL_FILE_GQ     <- file.path(INPUT_CONTROLS_DIR, substr(YEAR,6,9), "gq00051015_maz.csv")
+GQ_COUNTY_CONTROL_FILE  <- file.path(INPUT_CONTROLS_DIR, substr(YEAR,6,9), "meta_controls_gq.csv")
+GEOG_CONTROL_FILE       <- file.path(GEOXWALK_DIR, "geographicCWalk.csv")
 
 #### Data reads	
  	

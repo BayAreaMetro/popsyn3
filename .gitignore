@@ -8,3 +8,4 @@ application/inputs/Prepare_Inputs_cache
 application/runtime/config/settings.xml
 application/runtime/common-base.jar
 application/runtime/popsyn3Unsigned.jar
+R_based_setup/census_data

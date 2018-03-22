@@ -12,7 +12,7 @@
 #
 # Author: binny.mathewpaul@rsginc.com Feb 2017
 ###########################################################################################################
-
+message("=== Running buildControls2010.R")
 
 # LIBRARIES
 ############

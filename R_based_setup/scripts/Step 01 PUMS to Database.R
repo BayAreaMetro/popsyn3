@@ -1,20 +1,43 @@
-#' Prepares PUMS database inputs for the Population Synthesizer
-#' author: Dave Ory, MTC
-#' 	##############################################################	
- 	
-suppressMessages(library(dplyr))	
-suppressMessages(library(stringr)	)
-suppressMessages(library(RMySQL))	
- 	
-#### Paramaters	
- 	
-#MYSQL_SERVER    = "localhost"	
-#MYSQL_DATABASE  = "mtc_popsyn"	
-#MYSQL_USER_NAME = "root" 	
-#DATA_DIR <- "E:/Projects/Clients/mtc/TO2_Task2/MTCPopSynIII/data"
-#YEAR <- "year_2010"
+# Prepares PUMS database inputs for the Population Synthesizer
+# author: Dave Ory, MTC
+#
+# Reads the 2000 and 2007-2011 ACS PUMS household and persons sample files from:
+# - PUMS_00_HH_FILE
+# - PUMS_00_PER_FILE
+# - PUMS_0711_HH_FILE
+# - PUMS_0711_PER_FILE
+# Additionally, reads a geographic crosswalk file in order to filter down to the
+# appropriate PUMAS:
+# - GEOG_CONTROL_FILE
+# The script processes the PUMS persons and households, including
+# - splitting group quarters from non-group quarters
+# - adjusting income to (year 2010 dollars)
+# - recoding/setting some variables
+# Finally, it writes out the following tables to the MySQL database (overwriting if they're there already)
+# - household_table_2000,      gqhousehold_table_2000
+# - person_table_2000,         gqperson_table_2000
+# - household_table_2007_2011, gqhousehold_table_2007_2011
+# - person_table_2007_2011,    gqperson_table_2007_2011
+####################################################################################################################
 
-	
+message("=== Running Step 01 PUMS to Database.R")
+
+suppressMessages(library(dplyr))
+suppressMessages(library(stringr)	)
+suppressMessages(library(RMySQL))
+
+# try to connect to database up front so we can fail fast if it won't work
+# get password
+mysql_passes <- read.csv(MYSQL_PASSWORD_FILE, header = TRUE)
+
+mysql_passes <- mysql_passes %>%
+  filter(user == MYSQL_USER_NAME) %>%
+  mutate(pwd = paste(pwd))
+
+mysql_connection <- dbConnect(MySQL(), user = MYSQL_USER_NAME, password = mysql_passes$pwd, host = MYSQL_SERVER, dbname = MYSQL_DATABASE)
+message(dbListTables(mysql_connection))
+dbDisconnect(mysql_connection)  
+
 # build occupation code data frame	
 socp10_first_two = c(11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 31, 33, 35, 37, 39, 41, 43, 45, 47, 49, 51, 53, 55)	
 occupation_code  = c( 1,  2,  2,  2,  2,  3,  2,  2,  3,  2,  3,  3,  4,  5,  3,  4,  3,  5,  5,  5,  5,  5,  6)	
@@ -31,7 +54,7 @@ socp10_occupation_df <- left_join(socp10_occupation_df, occupation_df, by = c("o
 remove(occupation_df, occupation_code, occupation_category, socp10_first_two)	
  	
 #### Remote file locations	
-GEOG_CONTROL_FILE <-   paste(DATA_DIR, "geographicCWalk.csv", sep = "/")	
+GEOG_CONTROL_FILE <-   file.path(getwd(), "..", "data", "geographicCWalk.csv") # todo: should this go in a better named dir?
 	
 	
 #### Data reads	
@@ -52,7 +75,8 @@ input_pums_00_per <- input_pums_00_per %>%
   rename(PUMA = puma5)	
  	
 #### Prepare 2007-2011 PUMS data	
- 	
+message("Preparing 2007-2011 PUMS data")
+
 # the geographies file reminds us we are using the 2000 Census PUMAs	
 input_geog <- input_geog %>%	
   rename(PUMA = PUMA5CE00)
@@ -212,17 +236,12 @@ names(pums_per_gq)[names(pums_per_gq) == 'PUMA_GQ'] <- 'PUMA'
  	
 # year of the PUMS data	
 PUMS_YEAR = "2007_2011"	
-	
-# get password	
-mysql_passes <- read.csv(MYSQL_PASSWORD_FILE, header = TRUE)	
-	
-mysql_passes <- mysql_passes %>%	
-  filter(user == MYSQL_USER_NAME) %>%	
-  mutate(pwd = paste(pwd))	
-	
-# connection	
-mysql_connection <- dbConnect(MySQL(), user = MYSQL_USER_NAME, password = mysql_passes$pwd, host = MYSQL_SERVER, dbname = MYSQL_DATABASE)	
-	
+
+message("Writing 2007-2011 PUMS data to database")
+
+# connection
+mysql_connection <- dbConnect(MySQL(), user = MYSQL_USER_NAME, password = mysql_passes$pwd, host = MYSQL_SERVER, dbname = MYSQL_DATABASE)
+
 # write the household and person tables	
 dbWriteTable(conn = mysql_connection, name = paste('household_table', PUMS_YEAR, sep = '_'), value = as.data.frame(pums_hh),  overwrite = TRUE)	
 dbWriteTable(conn = mysql_connection, name = paste('person_table', PUMS_YEAR, sep = '_'),    value = as.data.frame(pums_per), overwrite = TRUE)	
@@ -231,11 +250,11 @@ dbWriteTable(conn = mysql_connection, name = paste('person_table', PUMS_YEAR, se
 dbWriteTable(conn = mysql_connection, name = paste('gqhousehold_table', PUMS_YEAR, sep = '_'), value = as.data.frame(pums_hh_gq),  overwrite = TRUE)	
 dbWriteTable(conn = mysql_connection, name = paste('gqperson_table', PUMS_YEAR, sep = '_'),    value = as.data.frame(pums_per_gq), overwrite = TRUE)	
 
-	
 dbDisconnect(mysql_connection)	
 	
 #### Prepare 2000 PUMS Data	
- 	
+message("Preparing 2000 PUMS data")
+
 # get list of relevant pums	
 relevant_pumas <- unique(input_geog$PUMA)	
 	
@@ -353,10 +372,12 @@ names(pums_per_gq)[names(pums_per_gq) == 'PUMA_GQ'] <- 'PUMA'
  	
 # year of the PUMS data	
 PUMS_YEAR = "2000"	
-	
-# connection	
-mysql_connection <- dbConnect(MySQL(), user = MYSQL_USER_NAME, password = mysql_passes$pwd, host = MYSQL_SERVER, dbname = MYSQL_DATABASE)	
-	
+
+message("Writing 2000 PUMS data to database")
+
+# connection
+mysql_connection <- dbConnect(MySQL(), user = MYSQL_USER_NAME, password = mysql_passes$pwd, host = MYSQL_SERVER, dbname = MYSQL_DATABASE)
+
 # write the household and person tables	
 dbWriteTable(conn = mysql_connection, name = paste('household_table', PUMS_YEAR, sep = '_'), value = as.data.frame(pums_hh),  overwrite = TRUE)	
 dbWriteTable(conn = mysql_connection, name = paste('person_table', PUMS_YEAR, sep = '_'),    value = as.data.frame(pums_per), overwrite = TRUE)	

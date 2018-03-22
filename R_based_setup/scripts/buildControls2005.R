@@ -6,6 +6,7 @@
 #
 # Author: binny.mathewpaul@rsginc.com Feb 2017
 ###########################################################################################################
+message("=== Running buildControls2005.R")
 
 # LIBRARIES
 ############

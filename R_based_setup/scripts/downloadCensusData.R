@@ -15,6 +15,7 @@
 # http://api.census.gov/data.html
 # https://github.com/hrecht/censusapi [censusapi package, works for County level data]
 ################################################################################################################################
+message("=== Running downloadCensusData.R")
 
 # LIBRARIES
 ############

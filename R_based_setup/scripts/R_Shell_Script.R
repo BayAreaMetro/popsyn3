@@ -1,6 +1,8 @@
 #! C:/Program Files/R/R-3.3.1/bin RScript
 # Script to run R scripts for preparing database for PopSyn3 run
 
+message("=== Running R_Shell_Script.R")
+
 ####################################################################################################################
 ################################          Read arguments and initial setup        ##################################
 ####################################################################################################################
@@ -26,7 +28,11 @@ if (!"hydroGOF" %in% installed.packages()) install.packages("hydroGOF", repos='h
 ## Read parameters from Parameters_File
 parameters <- read.csv(Parameters_File, header = TRUE)
 
-WORKING_DIR          <- trimws(paste(parameters$Value[parameters$Key=="WORKING_DIR"]))	
+WORKING_DIR          <- trimws(paste(parameters$Value[parameters$Key=="WORKING_DIR"]))
+CENSUS_DATA_DIR      <- trimws(paste(parameters$Value[parameters$Key=="CENSUS_DATA_DIR"]))
+INPUT_CONTROLS_DIR   <- trimws(paste(parameters$Value[parameters$Key=="INPUT_CONTROLS_DIR"]))
+GEOXWALK_DIR         <- trimws(paste(parameters$Value[parameters$Key=="GEOXWALK_DIR"]))
+INTERMEDIATE_DIR     <- trimws(paste(parameters$Value[parameters$Key=="INTERMEDIATE_DIR"]))
 MYSQL_SERVER         <- trimws(paste(parameters$Value[parameters$Key=="MYSQL_SERVER"]))
 MYSQL_DATABASE       <- trimws(paste(parameters$Value[parameters$Key=="MYSQL_DATABASE"]))
 MYSQL_USER_NAME      <- trimws(paste(parameters$Value[parameters$Key=="MYSQL_USER_NAME"]))
@@ -43,12 +49,11 @@ downloadCensus       <- trimws(paste(parameters$Value[parameters$Key=="downloadC
 setwd(paste(WORKING_DIR, "scripts", sep="/"))
 
 ## Set other parameter values
-DATA_DIR <- paste(WORKING_DIR, "data", sep="/")
 
-PUMS_0711_HH_FILE    <- paste(DATA_DIR, "ss11hca.csv", sep = "/")	
-PUMS_0711_PER_FILE   <- paste(DATA_DIR, "ss11pca.csv", sep = "/")
-PUMS_00_HH_FILE      <- paste(DATA_DIR, "hbayarea5_2000.csv", sep = "/")	
-PUMS_00_PER_FILE     <- paste(DATA_DIR, "pbayarea5_2000.csv", sep = "/")	
+PUMS_0711_HH_FILE    <- file.path(CENSUS_DATA_DIR, "PUMS", "ss11hca.csv")
+PUMS_0711_PER_FILE   <- file.path(CENSUS_DATA_DIR, "PUMS", "ss11pca.csv")
+PUMS_00_HH_FILE      <- file.path(CENSUS_DATA_DIR, "PUMS", "hbayarea5_2000.csv")
+PUMS_00_PER_FILE     <- file.path(CENSUS_DATA_DIR, "PUMS", "pbayarea5_2000.csv")
 
 ####################################################################################################################
 ####################################        Run Data Processing Scripts         ####################################
