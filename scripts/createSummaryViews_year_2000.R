@@ -4,7 +4,7 @@
 # NON GQ 2000
 #
 ####################################################################
-
+message("=== Running createSummaryViews_year2000.R")
 
 # MySQL connection	
 channel <- dbConnect(MySQL(), user = MYSQL_USER_NAME, password = mysql_passes$pwd, host = MYSQL_SERVER, dbname = MYSQL_DATABASE)

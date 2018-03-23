@@ -16,9 +16,10 @@
 #  1. columnMpa needs to be updated
 #  2. set the year for the run
 #  3. set GQ_RUN == TRUE for a GQ run validation
-# 
+#
 # PopSyn Convergance - Plot showing mean %age difference across geographies +/- SDEV
 #################################################################################################################
+message("=== Running MTC_Popsyn_vis.R")
 
 ## Read Command Line Arguments
 args            <- commandArgs(trailingOnly = TRUE)
@@ -29,7 +30,9 @@ Parameters_File <- args[1]
 ## Read parameters from Parameters_File
 parameters <- read.csv(Parameters_File, header = TRUE)
 
-WORKING_DIR          <- trimws(paste(parameters$Value[parameters$Key=="WORKING_DIR"]))	
+WORKING_DIR          <- trimws(paste(parameters$Value[parameters$Key=="WORKING_DIR"]))
+RUNTIME_CONFIG_DIR   <- trimws(paste(parameters$Value[parameters$Key=="RUNTIME_CONFIG_DIR"]))
+OUTPUT_DIR           <- trimws(paste(parameters$Value[parameters$Key=="OUTPUT_DIR"]))
 MYSQL_SERVER         <- trimws(paste(parameters$Value[parameters$Key=="MYSQL_SERVER"]))
 MYSQL_DATABASE       <- trimws(paste(parameters$Value[parameters$Key=="MYSQL_DATABASE"]))
 MYSQL_USER_NAME      <- trimws(paste(parameters$Value[parameters$Key=="MYSQL_USER_NAME"]))
@@ -38,7 +41,8 @@ YEAR                 <- trimws(paste(parameters$Value[parameters$Key=="PopSyn_YE
 Run_HH_PopSyn        <- trimws(paste(parameters$Value[parameters$Key=="Run_HH_PopSyn"]))
 Run_GQ_PopSyn        <- trimws(paste(parameters$Value[parameters$Key=="Run_GQ_PopSyn"]))
 
-setwd(paste(WORKING_DIR, "Validation", sep = "/"))
+VALIDATION_OUTPUT_DIR<- file.path(OUTPUT_DIR, "validation")
+dir.create(VALIDATION_OUTPUT_DIR, showWarnings = FALSE)
 
 
 #Load libraries
@@ -107,7 +111,7 @@ if(Run_HH_PopSyn=="YES"){
       mutate(pcDIFFERENCE = ifelse(CONTROL > 0,(DIFFERENCE/CONTROL)*100,NA))
     
     if (summaryID=="POP"){
-      write.csv(compareData, "compareData.csv", row.names = TRUE)
+      write.csv(compareData, file.path(VALIDATION_OUTPUT_DIR,"compareData.csv"), row.names = TRUE)
     }
     
     #Calculate statistics
@@ -138,7 +142,7 @@ if(Run_HH_PopSyn=="YES"){
         coord_cartesian(xlim = c(-xaxisLimit, xaxisLimit)) +
         geom_vline(xintercept=c(0), colour = "steelblue")+
         labs(title = plotTitle)
-      ggsave(paste(plot_dir_name, "/",controlID,"_", YEAR, ".png",sep=""), width=9,height=6)
+      ggsave(file.path(VALIDATION_OUTPUT_DIR, paste0(controlID,"_",YEAR,".png")), width=9,height=6)
     }
     
     cat("\n Processed Control: ", controlName) 
@@ -153,17 +157,13 @@ if(Run_HH_PopSyn=="YES"){
     return(rmse(ACTUAL, EXPECTED, na.rm=TRUE))
   }
   
-  mapFile <- ifelse(GQ_RUN, "columnMapMTCGQ.csv", paste("columnMapMTC_", YEAR,".csv", sep = ""))
-  columnMap <- read.csv(mapFile)  	   #Read in column equivalency between control tables and summary tables
+  mapFile <- ifelse(GQ_RUN, "columnMapMTCGQ.csv", paste0("columnMapMTC_", YEAR,".csv"))
+  columnMap <- read.csv(file.path(RUNTIME_CONFIG_DIR,mapFile))  	   #Read in column equivalency between control tables and summary tables
   
   ## CREATE VIEWS
   viewScript <- ifelse(GQ_RUN, paste(WORKING_DIR, "/scripts/createSummaryViewsGQ_", YEAR, ".R", sep = ""), 
                        paste(WORKING_DIR, "/scripts/createSummaryViews_", YEAR, ".R", sep = ""))
   source(viewScript)
-  
-  #Create plot directory
-  plot_dir_name <- ifelse(GQ_RUN, 'plots_gq', 'plots')
-  dir.create(plot_dir_name, showWarnings = FALSE)
   
   # MySQL connection	
   channel <- dbConnect(MySQL(), user = MYSQL_USER_NAME, password = mysql_passes$pwd, host = MYSQL_SERVER, dbname = MYSQL_DATABASE)	
@@ -172,8 +172,9 @@ if(Run_HH_PopSyn=="YES"){
   stats <- apply(columnMap, 1, function(x) procControl(x["GEOGRAPHY"], x["NAME"], x["CONTROL"],x["SUMMARY"]))
   #close(channel)
   stats <- do.call(rbind,stats)
-  stats_outfile <- ifelse(GQ_RUN, paste("stats_gq", "_", YEAR, ".csv", sep = ""), paste("stats", "_", YEAR, ".csv", sep = ""))
-  write.csv(stats, stats_outfile, row.names = FALSE)
+  stats_outfile <- ifelse(GQ_RUN, paste0("stats_gq", "_", YEAR, ".csv"),
+                                  paste0("stats", "_", YEAR, ".csv"))
+  write.csv(stats, file.path(VALIDATION_OUTPUT_DIR,stats_outfile), row.names = FALSE)
   
   #Convergance plot
   p2 <- ggplot(stats, aes(x = controlName, y=meanPCDiff)) +
@@ -228,9 +229,9 @@ if(Run_HH_PopSyn=="YES"){
           axis.text.x  = element_text(angle=90, size=5),
           axis.text.y  = element_text(size=5))  +
     scale_y_continuous(labels = percent_format())
-  ef_filename <- ifelse(GQ_RUN, paste(plot_dir_name, "/EF-Distribution_GQ", "_", YEAR, ".png"), 
-                        paste(plot_dir_name,"/EF-Distribution", "_", YEAR, ".png")) 
-  ggsave("plots/EF-Distribution.png", width=15,height=10)
+  ef_filename <- ifelse(GQ_RUN, paste0("EF-Distribution_GQ", "_", YEAR, ".png"),
+                                paste0("EF-Distribution", "_", YEAR, ".png"))
+  ggsave(file.path(VALIDATION_OUTPUT_DIR, ef_filename), width=15,height=10)
   
   uAnalysisPUMA <- group_by(uniformity, PUMA)
   
@@ -242,8 +243,8 @@ if(Run_HH_PopSyn=="YES"){
                              ,EXP_MIN = min(EXPANSIONFACTOR)
                              ,EXP_MAX = max(EXPANSIONFACTOR)
                              ,RMSE = myRMSE(EXPANSIONFACTOR, EXP, N))
-  univ_filename <- ifelse(GQ_RUN, paste("uniformity", "_", YEAR, ".csv"), paste("uniformity_GQ", "_", YEAR, ".csv")) 
-  write.csv(uAnalysisPUMA, univ_filename, row.names=FALSE)
+  univ_filename <- ifelse(GQ_RUN, paste0("uniformity", "_", YEAR, ".csv"), paste("uniformity_GQ", "_", YEAR, ".csv"))
+  write.csv(uAnalysisPUMA, file.path(VALIDATION_OUTPUT_DIR, univ_filename), row.names=FALSE)
   
   #fin
 }
@@ -297,7 +298,7 @@ if(Run_GQ_PopSyn=="YES"){
       mutate(pcDIFFERENCE = ifelse(CONTROL > 0,(DIFFERENCE/CONTROL)*100,NA))
     
     if (summaryID=="POP"){
-      write.csv(compareData, "compareData.csv", row.names = TRUE)
+      write.csv(compareData, file.path(VALIDATION_OUTPUT_DIR,"compareData.csv"), row.names = TRUE)
     }
     
     #Calculate statistics
@@ -328,7 +329,7 @@ if(Run_GQ_PopSyn=="YES"){
         coord_cartesian(xlim = c(-xaxisLimit, xaxisLimit)) +
         geom_vline(xintercept=c(0), colour = "steelblue")+
         labs(title = plotTitle)
-      ggsave(paste(plot_dir_name, "/",controlID,"_", YEAR, ".png",sep=""), width=9,height=6)
+      ggsave(file.path(VALIDATION_OUTPUT_DIR, paste0(controlID,"_",YEAR,".png")), width=9,height=6)
     }
     
     cat("\n Processed Control: ", controlName) 
@@ -344,16 +345,12 @@ if(Run_GQ_PopSyn=="YES"){
   }
   
   mapFile <- ifelse(GQ_RUN, "columnMapMTCGQ.csv", paste("columnMapMTC_", YEAR,".csv", sep = ""))
-  columnMap <- read.csv(mapFile)  	   #Read in column equivalency between control tables and summary tables
+  columnMap <- read.csv(file.path(RUNTIME_CONFIG_DIR,mapFile))  #Read in column equivalency between control tables and summary tables
   
   ## CREATE VIEWS
   viewScript <- ifelse(GQ_RUN, paste(WORKING_DIR, "/scripts/createSummaryViewsGQ_", YEAR, ".R", sep = ""), 
-                       paste(WORKING_DIR, "/scripts/createSummaryViews_", YEAR, ".R", sep = ""))
+                               paste(WORKING_DIR, "/scripts/createSummaryViews_", YEAR, ".R", sep = ""))
   source(viewScript)
-  
-  #Create plot directory
-  plot_dir_name <- ifelse(GQ_RUN, 'plots_gq', 'plots')
-  dir.create(plot_dir_name, showWarnings = FALSE)
   
   # MySQL connection	
   channel <- dbConnect(MySQL(), user = MYSQL_USER_NAME, password = mysql_passes$pwd, host = MYSQL_SERVER, dbname = MYSQL_DATABASE)	
@@ -362,8 +359,9 @@ if(Run_GQ_PopSyn=="YES"){
   stats <- apply(columnMap, 1, function(x) procControl(x["GEOGRAPHY"], x["NAME"], x["CONTROL"],x["SUMMARY"]))
   #close(channel)
   stats <- do.call(rbind,stats)
-  stats_outfile <- ifelse(GQ_RUN, paste("stats_gq", "_", YEAR, ".csv", sep = ""), paste("stats", "_", YEAR, ".csv", sep = ""))
-  write.csv(stats, stats_outfile, row.names = FALSE)
+  stats_outfile <- ifelse(GQ_RUN, paste0("stats_gq", "_", YEAR, ".csv"),
+                                  paste0("stats", "_", YEAR, ".csv"))
+  write.csv(stats, file.path(VALIDATION_OUTPUT_DIR, stats_outfile), row.names = FALSE)
   
   #Convergance plot
   p2 <- ggplot(stats, aes(x = controlName, y=meanPCDiff)) +
@@ -418,9 +416,9 @@ if(Run_GQ_PopSyn=="YES"){
           axis.text.x  = element_text(angle=90, size=5),
           axis.text.y  = element_text(size=5))  +
     scale_y_continuous(labels = percent_format())
-  ef_filename <- ifelse(GQ_RUN, paste(plot_dir_name, "/EF-Distribution_GQ", "_", YEAR, ".png"), 
-                        paste(plot_dir_name,"/EF-Distribution", "_", YEAR, ".png")) 
-  ggsave("plots/EF-Distribution.png", width=15,height=10)
+  ef_filename <- ifelse(GQ_RUN, paste0("EF-Distribution_GQ","_",YEAR,".png"),
+                                paste0("EF-Distribution"   ,"_",YEAR,".png"))
+  ggsave(file.path(VALIDATION_OUTPUT_DIR,ef_filename), width=15,height=10)
   
   uAnalysisPUMA <- group_by(uniformity, PUMA)
   
@@ -432,8 +430,9 @@ if(Run_GQ_PopSyn=="YES"){
                              ,EXP_MIN = min(EXPANSIONFACTOR)
                              ,EXP_MAX = max(EXPANSIONFACTOR)
                              ,RMSE = myRMSE(EXPANSIONFACTOR, EXP, N))
-  univ_filename <- ifelse(GQ_RUN, paste("uniformity", "_", YEAR, ".csv"), paste("uniformity_GQ", "_", YEAR, ".csv")) 
-  write.csv(uAnalysisPUMA, univ_filename, row.names=FALSE)
+  univ_filename <- ifelse(GQ_RUN, paste0("uniformity", "_", YEAR, ".csv"),
+                                  paste0("uniformity_GQ", "_", YEAR, ".csv"))
+  write.csv(uAnalysisPUMA, file.path(VALIDATION_OUTPUT_DIR, univ_filename), row.names=FALSE)
   
   #fin
 }

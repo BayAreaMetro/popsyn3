@@ -20,7 +20,7 @@ File Structure
 * application - older files.  Will be cleaned/deprecated.
 * build - Built java classes, created when `go_go_build.bat` is run.
 * census_data - Census and PUMS data.  Not in github since these include huge files; these are copied from Box in `runPopSynIII.bat`
-* outputs - final output, including intermediate files
+* outputs - final output, including intermediate files and validation plots and summaries
 * release - Built java Archive files, created when `go_go_build.bat` is run.
 * runtime - final compiled executables and configuration
 * scripts - batch and R scripts used to run the entire PopSyn process

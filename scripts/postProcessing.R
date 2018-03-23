@@ -5,6 +5,7 @@
 # files are exported in CSV formatted, separate file for HH and GQ populations
 #
 #############################################################################
+message("=== Running postProcessing.R")
 
 ## Read Command Line Arguments
 args            <- commandArgs(trailingOnly = TRUE)
@@ -17,7 +18,9 @@ suppressMessages(library(dplyr))
 ## Read parameters from Parameters_File
 parameters <- read.csv(Parameters_File, header = TRUE)
 
-WORKING_DIR          <- trimws(paste(parameters$Value[parameters$Key=="WORKING_DIR"]))	
+WORKING_DIR          <- trimws(paste(parameters$Value[parameters$Key=="WORKING_DIR"]))
+GEOXWALK_DIR         <- trimws(paste(parameters$Value[parameters$Key=="GEOXWALK_DIR"]))
+OUTPUT_DIR           <- trimws(paste(parameters$Value[parameters$Key=="OUTPUT_DIR"]))
 MYSQL_SERVER         <- trimws(paste(parameters$Value[parameters$Key=="MYSQL_SERVER"]))
 MYSQL_DATABASE       <- trimws(paste(parameters$Value[parameters$Key=="MYSQL_DATABASE"]))
 MYSQL_USER_NAME      <- trimws(paste(parameters$Value[parameters$Key=="MYSQL_USER_NAME"]))

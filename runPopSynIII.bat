@@ -13,6 +13,8 @@ C:\windows\System32\robocopy /MIR "%BOX_POPSYN_APP%\census_data" %CD%\census_dat
 :: including PUMS, CTPP2000, etc
 SET CENSUS_DATA_DIR=%CD%\census_data
 
+:: runtime configuration -- definitions of controls
+set RUNTIME_CONFIG_DIR=%CD%\runtime\config
 :: input controls, in model year subdirs
 SET INPUT_CONTROLS_DIR=%BOX_POPSYN_APP%\input_controls
 :: todo: what are these
@@ -39,7 +41,7 @@ SET R_VALIDATION=scripts\MTC_Popsyn_vis.R
 SET CENSUS_API_KEY_FILE=%BOX_POPSYN_APP%\runtime_config\census_api_key.csv
 
 :: Parameters file [Do not change file name]
-SET PARAMETERS_FILE="%CD%\runtime\config\parameters.csv"
+SET PARAMETERS_FILE="%RUNTIME_CONFIG_DIR%\parameters.csv"
 
 :: SET PopSyn_YEAR as year_2000, year_2005, year_2010 or year_2015
 :: ----------------------------------------------------------------
@@ -77,9 +79,11 @@ ECHO %startTime%%Time%: Creating parameters file...
 ECHO Key,Value > %PARAMETERS_FILE%
 ECHO WORKING_DIR,%CD% >> %PARAMETERS_FILE%
 ECHO CENSUS_DATA_DIR,%CENSUS_DATA_DIR% >> %PARAMETERS_FILE%
+ECHO RUNTIME_CONFIG_DIR,%RUNTIME_CONFIG_DIR% >> %PARAMETERS_FILE%
 ECHO INPUT_CONTROLS_DIR,%INPUT_CONTROLS_DIR% >> %PARAMETERS_FILE%
 ECHO GEOXWALK_DIR,%GEOXWALK_DIR% >> %PARAMETERS_FILE%
 ECHO INTERMEDIATE_DIR,%INTERMEDIATE_DIR% >> %PARAMETERS_FILE%
+ECHO OUTPUT_DIR,%OUTPUT_DIR% >> %PARAMETERS_FILE%
 ECHO MYSQL_SERVER,%MYSQLSERVER% >> %PARAMETERS_FILE%
 ECHO MYSQL_DATABASE,%DATABASE% >> %PARAMETERS_FILE%
 ECHO MYSQL_USER_NAME,%DB_USER% >> %PARAMETERS_FILE%
@@ -104,22 +108,21 @@ ECHO %startTime%%Time%: PopSyn database creation complete...
 
 ECHO %startTime%%Time%: Running population synthesizer...
 SET JAVA_64_PATH=C:\Program Files\Java\jdk1.8.0_161\jre
-SET CLASSPATH=runtime\config
-SET CLASSPATH=%CLASSPATH%;runtime\*
-SET CLASSPATH=%CLASSPATH%;runtime\lib\*
-SET CLASSPATH=%CLASSPATH%;runtime\lib\JPFF-3.2.2\JPPF-3.2.2-admin-ui\lib\*
+SET CLASSPATH=runtime\config;runtime\*;runtime\lib\*;runtime\lib\JPFF-3.2.2\JPPF-3.2.2-admin-ui\lib\*
 SET LIBPATH=runtime\lib
 
+:hh_popsyn
 IF %Run_HH_PopSyn%==YES (
   ECHO %startTime%%Time%: Starting HH PopSyn run...
-  "%JAVA_64_PATH%\bin\java" -showversion -server -Xms15000m -Xmx15000m -cp "%CLASSPATH%" -Djppf.config=jppf-clientLocal.properties -Djava.library.path=%LIBPATH% popGenerator.PopGenerator runtime/config/%settingsFile%
+  "%JAVA_64_PATH%\bin\java" -showversion -server -Xms15000m -Xmx15000m -cp "%CLASSPATH%" -Djppf.config=jppf-clientLocal.properties -Djava.library.path=%LIBPATH% popGenerator.PopGenerator "%RUNTIME_CONFIG_DIR%/%settingsFile%"
   IF ERRORLEVEL 1 goto error
   ECHO %startTime%%Time%: Population synthesis complete...
 )
 
+:gq_popsyn
 IF %Run_GQ_PopSyn%==YES (
   ECHO %startTime%%Time%: Starting GQ PopSyn run...
-  "%JAVA_64_PATH%\bin\java" -showversion -server -Xms15000m -Xmx15000m -cp "%CLASSPATH%" -Djppf.config=jppf-clientLocal.properties -Djava.library.path=%LIBPATH% popGenerator.PopGenerator runtime/config/%GQsettingsFile% 
+  "%JAVA_64_PATH%\bin\java" -showversion -server -Xms15000m -Xmx15000m -cp "%CLASSPATH%" -Djppf.config=jppf-clientLocal.properties -Djava.library.path=%LIBPATH% popGenerator.PopGenerator "%RUNTIME_CONFIG_DIR%/%GQsettingsFile%"
   IF ERRORLEVEL 1 goto error
   ECHO %startTime%%Time%: Population synthesis for GQ complete...
 )
@@ -127,6 +130,7 @@ IF %Run_GQ_PopSyn%==YES (
 :: ############################################################################
 :: ### POST PROCESSING
 
+:post_processing
 IF %Run_PostProcessing%==YES (
     ECHO %startTime%%Time%: Post Processing - creating final HH and person files...
     :: Call post processing R script
@@ -139,6 +143,7 @@ IF %Run_PostProcessing%==YES (
 :: ############################################################################
 :: ### VALIDATION REPORT
 
+:validation
 IF %Run_Validation%==YES (
     ECHO %startTime%%Time%: Generate validation plot and summaries for each PopSyn run
     :: Call validation R script

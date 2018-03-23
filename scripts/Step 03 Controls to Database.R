@@ -7,9 +7,6 @@ suppressMessages(library(dplyr))
 library(stringr)	
 suppressMessages(library(RMySQL))	
 
-#DATA_DIR <- "E:/Projects/Clients/mtc/TO2_Task2/MTCPopSynIII/data"
-#YEAR <- "year_2010"
-
 #####
 MAZ_CONTROL_FILE        <- file.path(INTERMEDIATE_DIR, YEAR, "mazControlFile.csv")
 TAZ_CONTROL_FILE        <- file.path(INTERMEDIATE_DIR, YEAR, "tazControlFile.csv")

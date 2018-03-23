@@ -1,3 +1,4 @@
+#################################################################################################################
 # Prepares PUMS database inputs for the Population Synthesizer
 # author: Dave Ory, MTC
 #
@@ -18,8 +19,7 @@
 # - person_table_2000,         gqperson_table_2000
 # - household_table_2007_2011, gqhousehold_table_2007_2011
 # - person_table_2007_2011,    gqperson_table_2007_2011
-####################################################################################################################
-
+#################################################################################################################
 message("=== Running Step 01 PUMS to Database.R")
 
 suppressMessages(library(dplyr))

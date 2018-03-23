@@ -1,9 +1,11 @@
 Key,Value 
 WORKING_DIR,C:\Users\lzorn\Documents\popsyn3 
 CENSUS_DATA_DIR,C:\Users\lzorn\Documents\popsyn3\census_data 
+RUNTIME_CONFIG_DIR,C:\Users\lzorn\Documents\popsyn3\runtime\config 
 INPUT_CONTROLS_DIR,C:\Users\lzorn\Box\Modeling and Surveys\Development\Travel Model Two Development\Population Synthesis\Application\input_controls 
 GEOXWALK_DIR,C:\Users\lzorn\Box\Modeling and Surveys\Development\Travel Model Two Development\Population Synthesis\Application\GeographicXWalk 
 INTERMEDIATE_DIR,C:\Users\lzorn\Documents\popsyn3\outputs\intermediate 
+OUTPUT_DIR,C:\Users\lzorn\Documents\popsyn3\outputs 
 MYSQL_SERVER,localhost 
 MYSQL_DATABASE,mtc_popsyn 
 MYSQL_USER_NAME,root 

@@ -1,5 +1,12 @@
-#! C:/Program Files/R/R-3.3.1/bin RScript
-# Script to run R scripts for preparing database for PopSyn3 run
+#################################################################################################################
+# This script functions to
+# - install required R packages
+# - read the parameters from the parameters file so they're available to the R scripts called from here
+# - run the assorted R scripts as requested:
+#   - Step 01 PUMS to Database.R
+#   - buildControls[YYYY].R
+#   - Step 03 Controls to Database.R
+#################################################################################################################
 
 message("=== Running R_Shell_Script.R")
 
