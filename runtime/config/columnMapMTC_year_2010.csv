@@ -1,0 +1,26 @@
+NAME,GEOGRAPHY,CONTROL,SUMMARY
+Total Households,maz,households,HH
+Household Size: 1 person HH,maz,HHSize1,HHSIZE1
+Household Size: 2 person HH,maz,HHSize2,HHSIZE2
+Household Size: 3 person HH,maz,HHSize3,HHSIZE3
+Household Size: 4+ person HH,maz,HHSize4p,HHSIZE4PLUS
+"Household Income: (-Inf,30k)",taz,INC00_30,HHINC1
+"Household Income: [30k,60k)",taz,INC30_60,HHINC2
+"Household Income: [60k,100k)",taz,INC60_100,HHINC3
+"Household Income: [100k,+Inf)",taz,INC100p,HHINC4
+Household Workers: 0 worker HH,taz,WORKERS0,HHWORK0
+Household Workers: 1 worker HH,taz,WORKERS1,HHWORK1
+Household Workers: 2 worker HH,taz,WORKERS2,HHWORK2
+Household Workers: 3+ worker HH,taz,WORKERS3,HHWORK3PLUS
+Households with Children,taz,WI_KIDS,WIKIDS
+Households without Children,taz,WO_KIDS,WOKIDS
+Age 0 to 19 years,taz,Age_00_19,AGE0019
+Age 20 to 34 years,taz,Age_20_34,AGE2034
+Age 35 to 64 years,taz,Age_35_64,AGE3564
+Age 65 plus,taz,Age_65_up,AGE65PLUS
+Occupation: Management,mtc_county_id,occupation_management,OCCP_Management
+Occupation: Professional,mtc_county_id,occupation_professional,OCCP_Professional
+Occupation: Services,mtc_county_id,occupation_services,OCCP_Services
+Occupation: Retail,mtc_county_id,occupation_retail,OCCP_Retail
+Occupation: Manual,mtc_county_id,occupation_manual,OCCP_Manual
+Occupation: Military,mtc_county_id,occupation_military,OCCP_Military

@@ -1,0 +1,6 @@
+NAME,GEOGRAPHY,CONTROL,SUMMARY
+Total GQ Population,maz,popgq,TOTGQ
+GQ University,maz,univ,GQUNI
+GQ Military,maz,mil,GQMIL
+GQ Others,maz,othnon,GQOTH
+Total GQ Population,region,GQPOP,POPGQ
