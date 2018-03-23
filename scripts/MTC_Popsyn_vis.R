@@ -1,7 +1,7 @@
 #################################################################################################################
-# Script for validating PopSyn III convergance
+# Script for validating PopSyn III Convergence
 # The following files are produced by the program:
-#   stats.csv file has the following statistics to examine convergance
+#   stats.csv file has the following statistics to examine convergence
 #     controlName - Name of the control
 #     geography - Geography at which the control is specified
 #     Observed - Regional total specified
@@ -17,7 +17,7 @@
 #  2. set the year for the run
 #  3. set GQ_RUN == TRUE for a GQ run validation
 #
-# PopSyn Convergance - Plot showing mean %age difference across geographies +/- SDEV
+# PopSyn convergence - Plot showing mean %age difference across geographies +/- SDEV
 #################################################################################################################
 message("=== Running MTC_Popsyn_vis.R")
 
@@ -103,7 +103,7 @@ if(Run_HH_PopSyn=="YES"){
     controls <- dbGetQuery(channel,controlQuery)
     synthesized <- dbGetQuery(channel,synQuery)
     
-    #Fetch and process each control for getting convergance statistics
+    #Fetch and process each control for getting convergence statistics
     compareData <- left_join(controls, synthesized, by="GEOGRAPHY") %>%
       mutate(CONTROL = as.numeric(CONTROL)) %>%
       mutate(SYNTHESIZED = ifelse(is.na(SYNTHESIZED), 0, SYNTHESIZED)) %>%
@@ -168,7 +168,7 @@ if(Run_HH_PopSyn=="YES"){
   # MySQL connection	
   channel <- dbConnect(MySQL(), user = MYSQL_USER_NAME, password = mysql_passes$pwd, host = MYSQL_SERVER, dbname = MYSQL_DATABASE)	
   
-  #Computing convergance statistics and write out results
+  #Computing convergence statistics and write out results
   stats <- apply(columnMap, 1, function(x) procControl(x["GEOGRAPHY"], x["NAME"], x["CONTROL"],x["SUMMARY"]))
   #close(channel)
   stats <- do.call(rbind,stats)
@@ -176,7 +176,7 @@ if(Run_HH_PopSyn=="YES"){
                                   paste0("stats", "_", YEAR, ".csv"))
   write.csv(stats, file.path(VALIDATION_OUTPUT_DIR,stats_outfile), row.names = FALSE)
   
-  #Convergance plot
+  #Convergence plot
   p2 <- ggplot(stats, aes(x = controlName, y=meanPCDiff)) +
     geom_point(shape = 15, colour = "steelblue", size = 2)+
     geom_errorbar(data = stats, aes(ymin=-SDEV,ymax=SDEV), width=0.2, colour = "steelblue") +
@@ -186,10 +186,10 @@ if(Run_HH_PopSyn=="YES"){
     coord_flip(ylim = c(-100, 100)) +
     theme_bw() +
     theme(plot.title=element_text(size=12, lineheight=.9, face="bold", vjust=1))
-  p2_filename <- ifelse(GQ_RUN, paste("PopSyn Convergance-sdev_GQ", "_", YEAR, ".jpeg"), paste("PopSyn Convergance-sdev", "_", YEAR, ".jpeg"))
-  ggsave(file=p2_filename, width=8,height=10)
+  p2_filename <- ifelse(GQ_RUN, paste0("PopSyn Convergence-sdev_GQ", "_", YEAR, ".jpeg"), paste0("PopSyn Convergence-sdev", "_", YEAR, ".jpeg"))
+  ggsave(file=file.path(VALIDATION_OUTPUT_DIR,p2_filename), width=8,height=10)
   
-  #Convergance plot
+  #Convergence plot
   p3 <- ggplot(stats, aes(x = controlName, y=meanPCDiff)) +
     geom_point(shape = 15, colour = "steelblue", size = 2)+
     geom_errorbar(data = stats, aes(ymin=-PRMSE,ymax=PRMSE), width=0.2, colour = "steelblue") +
@@ -200,8 +200,8 @@ if(Run_HH_PopSyn=="YES"){
     theme_bw() +
     theme(plot.title=element_text(size=12, lineheight=.9, face="bold", vjust=1))
   
-  p3_filename <- ifelse(GQ_RUN, paste("PopSyn Convergance-PRMSE_GQ", "_", YEAR, ".jpeg"), paste("PopSyn Convergance-PRMSE", "_", YEAR, ".jpeg")) 
-  ggsave(file=p3_filename, width=8,height=10)
+  p3_filename <- ifelse(GQ_RUN, paste0("PopSyn Convergence-PRMSE_GQ", "_", YEAR, ".jpeg"), paste0("PopSyn Convergence-PRMSE", "_", YEAR, ".jpeg")) 
+  ggsave(file=file.path(VALIDATION_OUTPUT_DIR,p3_filename), width=8,height=10)
   
   #Uniformity Analysis
   uniformQuery <- ifelse(GQ_RUN, "SELECT * FROM GQuniformity WHERE WGTP>0", "SELECT * FROM uniformity WHERE WGTP>0")
@@ -243,7 +243,7 @@ if(Run_HH_PopSyn=="YES"){
                              ,EXP_MIN = min(EXPANSIONFACTOR)
                              ,EXP_MAX = max(EXPANSIONFACTOR)
                              ,RMSE = myRMSE(EXPANSIONFACTOR, EXP, N))
-  univ_filename <- ifelse(GQ_RUN, paste0("uniformity", "_", YEAR, ".csv"), paste("uniformity_GQ", "_", YEAR, ".csv"))
+  univ_filename <- ifelse(GQ_RUN, paste0("uniformity", "_", YEAR, ".csv"), paste0("uniformity_GQ", "_", YEAR, ".csv"))
   write.csv(uAnalysisPUMA, file.path(VALIDATION_OUTPUT_DIR, univ_filename), row.names=FALSE)
   
   #fin
@@ -290,7 +290,7 @@ if(Run_GQ_PopSyn=="YES"){
     controls <- dbGetQuery(channel,controlQuery)
     synthesized <- dbGetQuery(channel,synQuery)
     
-    #Fetch and process each control for getting convergance statistics
+    #Fetch and process each control for getting convergence statistics
     compareData <- left_join(controls, synthesized, by="GEOGRAPHY") %>%
       mutate(CONTROL = as.numeric(CONTROL)) %>%
       mutate(SYNTHESIZED = ifelse(is.na(SYNTHESIZED), 0, SYNTHESIZED)) %>%
@@ -355,7 +355,7 @@ if(Run_GQ_PopSyn=="YES"){
   # MySQL connection	
   channel <- dbConnect(MySQL(), user = MYSQL_USER_NAME, password = mysql_passes$pwd, host = MYSQL_SERVER, dbname = MYSQL_DATABASE)	
   
-  #Computing convergance statistics and write out results
+  #Computing convergence statistics and write out results
   stats <- apply(columnMap, 1, function(x) procControl(x["GEOGRAPHY"], x["NAME"], x["CONTROL"],x["SUMMARY"]))
   #close(channel)
   stats <- do.call(rbind,stats)
@@ -363,7 +363,7 @@ if(Run_GQ_PopSyn=="YES"){
                                   paste0("stats", "_", YEAR, ".csv"))
   write.csv(stats, file.path(VALIDATION_OUTPUT_DIR, stats_outfile), row.names = FALSE)
   
-  #Convergance plot
+  #Convergence plot
   p2 <- ggplot(stats, aes(x = controlName, y=meanPCDiff)) +
     geom_point(shape = 15, colour = "steelblue", size = 2)+
     geom_errorbar(data = stats, aes(ymin=-SDEV,ymax=SDEV), width=0.2, colour = "steelblue") +
@@ -373,10 +373,10 @@ if(Run_GQ_PopSyn=="YES"){
     coord_flip(ylim = c(-100, 100)) +
     theme_bw() +
     theme(plot.title=element_text(size=12, lineheight=.9, face="bold", vjust=1))
-  p2_filename <- ifelse(GQ_RUN, paste("PopSyn Convergance-sdev_GQ", "_", YEAR, ".jpeg"), paste("PopSyn Convergance-sdev", "_", YEAR, ".jpeg"))
-  ggsave(file=p2_filename, width=8,height=10)
+  p2_filename <- ifelse(GQ_RUN, paste0("PopSyn Convergnce-sdev_GQ", "_", YEAR, ".jpeg"), paste0("PopSyn Convergence-sdev", "_", YEAR, ".jpeg"))
+  ggsave(file=file.path(VALIDATION_OUTPUT_DIR,p2_filename), width=8,height=10)
   
-  #Convergance plot
+  #Convergence plot
   p3 <- ggplot(stats, aes(x = controlName, y=meanPCDiff)) +
     geom_point(shape = 15, colour = "steelblue", size = 2)+
     geom_errorbar(data = stats, aes(ymin=-PRMSE,ymax=PRMSE), width=0.2, colour = "steelblue") +
@@ -387,8 +387,8 @@ if(Run_GQ_PopSyn=="YES"){
     theme_bw() +
     theme(plot.title=element_text(size=12, lineheight=.9, face="bold", vjust=1))
   
-  p3_filename <- ifelse(GQ_RUN, paste("PopSyn Convergance-PRMSE_GQ", "_", YEAR, ".jpeg"), paste("PopSyn Convergance-PRMSE", "_", YEAR, ".jpeg")) 
-  ggsave(file=p3_filename, width=8,height=10)
+  p3_filename <- ifelse(GQ_RUN, paste0("PopSyn Convergence-PRMSE_GQ", "_", YEAR, ".jpeg"), paste0("PopSyn Convergence-PRMSE", "_", YEAR, ".jpeg")) 
+  ggsave(file=file.path(VALIDATION_OUTPUT_DIR,p3_filename), width=8,height=10)
   
   #Uniformity Analysis
   uniformQuery <- ifelse(GQ_RUN, "SELECT * FROM GQuniformity WHERE WGTP>0", "SELECT * FROM uniformity WHERE WGTP>0")
