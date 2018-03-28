@@ -8,11 +8,11 @@ library(stringr)
 suppressMessages(library(RMySQL))	
 
 #####
-MAZ_CONTROL_FILE        <- file.path(INTERMEDIATE_DIR, YEAR, "mazControlFile.csv")
-TAZ_CONTROL_FILE        <- file.path(INTERMEDIATE_DIR, YEAR, "tazControlFile.csv")
-COUNTY_CONTROL_FILE     <- file.path(INTERMEDIATE_DIR, YEAR, "countyControlFile.csv")
-MAZ_CONTROL_FILE_GQ     <- file.path(INPUT_CONTROLS_DIR, substr(YEAR,6,9), "gq00051015_maz.csv")
-GQ_COUNTY_CONTROL_FILE  <- file.path(INPUT_CONTROLS_DIR, substr(YEAR,6,9), "meta_controls_gq.csv")
+MAZ_CONTROL_FILE        <- file.path(INTERMEDIATE_DIR, POPSYN_YEAR, "mazControlFile.csv")
+TAZ_CONTROL_FILE        <- file.path(INTERMEDIATE_DIR, POPSYN_YEAR, "tazControlFile.csv")
+COUNTY_CONTROL_FILE     <- file.path(INTERMEDIATE_DIR, POPSYN_YEAR, "countyControlFile.csv")
+MAZ_CONTROL_FILE_GQ     <- file.path(INPUT_CONTROLS_DIR, substr(POPSYN_YEAR,6,9), "gq00051015_maz.csv")
+GQ_COUNTY_CONTROL_FILE  <- file.path(INPUT_CONTROLS_DIR, substr(POPSYN_YEAR,6,9), "meta_controls_gq.csv")
 GEOG_CONTROL_FILE       <- file.path(GEOXWALK_DIR, "geographicCWalk.csv")
 
 #### Data reads	
@@ -93,28 +93,28 @@ control_totals_maz_gq$region <- 1
 
 control_totals_maz_gq <- select(control_totals_maz_gq, -PUMA)
 names(control_totals_maz_gq)[names(control_totals_maz_gq) == 'PUMA_GQ'] <- 'PUMA'
-if(YEAR == "year_2000"){
+if(POPSYN_YEAR == "year_2000"){
   control_totals_maz_gq <- control_totals_maz_gq %>%
     left_join(input_maz_gq[,c("MAZ", "univ00", "mil00", "othnon00")], by = c("maz_original" = "MAZ")) %>%
     mutate(popgq = univ00+mil00+othnon00) %>%
     rename(univ = univ00, mil = mil00, othnon = othnon00) 
 }
 
-if(YEAR == "year_2005"){
+if(POPSYN_YEAR == "year_2005"){
   control_totals_maz_gq <- control_totals_maz_gq %>%
     left_join(input_maz_gq[,c("MAZ", "univ05", "mil05", "othnon05")], by = c("maz_original" = "MAZ")) %>%
     mutate(popgq = univ05+mil05+othnon05) %>%
     rename(univ = univ05, mil = mil05, othnon = othnon05) 
 }
 
-if(YEAR == "year_2010"){
+if(POPSYN_YEAR == "year_2010"){
   control_totals_maz_gq <- control_totals_maz_gq %>%
     left_join(input_maz_gq[,c("MAZ", "univ10", "mil10", "othnon10")], by = c("maz_original" = "MAZ")) %>%
     mutate(popgq = univ10+mil10+othnon10) %>%
     rename(univ = univ10, mil = mil10, othnon = othnon10)
 }
 
-if(YEAR == "year_2015"){
+if(POPSYN_YEAR == "year_2015"){
   control_totals_maz_gq <- control_totals_maz_gq %>%
     left_join(input_maz_gq[,c("MAZ", "univ15", "mil15", "othnon15")], by = c("maz_original" = "MAZ")) %>%
     mutate(popgq = univ15+mil15+othnon15) %>%
@@ -135,11 +135,11 @@ mysql_passes <- mysql_passes %>%
 mysql_connection <- dbConnect(MySQL(), user = MYSQL_USER_NAME, password = mysql_passes$pwd, host = MYSQL_SERVER, dbname = MYSQL_DATABASE)	
 	
 # write the control tables	
-dbWriteTable(conn = mysql_connection, name = paste('control_totals_maz',  YEAR, sep = '_'), value = as.data.frame(control_totals_maz),  overwrite = TRUE)	
-dbWriteTable(conn = mysql_connection, name = paste('control_totals_maz_gq',  YEAR, sep = '_'), value = as.data.frame(control_totals_maz_gq),  overwrite = TRUE)	
-dbWriteTable(conn = mysql_connection, name = paste('control_totals_taz',  YEAR, sep = '_'), value = as.data.frame(control_totals_taz),  overwrite = TRUE)	
-dbWriteTable(conn = mysql_connection, name = paste('control_totals_meta', YEAR, sep = '_'), value = as.data.frame(control_totals_meta), overwrite = TRUE)	
-dbWriteTable(conn = mysql_connection, name = paste('control_totals_meta_gq', YEAR, sep = '_'), value = as.data.frame(input_meta_gq), overwrite = TRUE)	
+dbWriteTable(conn = mysql_connection, name = paste0('control_totals_maz_',    POPSYN_YEAR), value = as.data.frame(control_totals_maz   ), overwrite = TRUE)
+dbWriteTable(conn = mysql_connection, name = paste0('control_totals_maz_gq_', POPSYN_YEAR), value = as.data.frame(control_totals_maz_gq), overwrite = TRUE)
+dbWriteTable(conn = mysql_connection, name = paste0('control_totals_taz_',    POPSYN_YEAR), value = as.data.frame(control_totals_taz   ), overwrite = TRUE)
+dbWriteTable(conn = mysql_connection, name = paste0('control_totals_meta_',   POPSYN_YEAR), value = as.data.frame(control_totals_meta  ), overwrite = TRUE)
+dbWriteTable(conn = mysql_connection, name = paste0('control_totals_meta_gq_',POPSYN_YEAR), value = as.data.frame(input_meta_gq        ), overwrite = TRUE)
 
 dbDisconnect(mysql_connection)	
  	

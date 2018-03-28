@@ -58,7 +58,7 @@ colnames(tazData) <- c("TAZ_ORIGINAL", "inc_00_30", "inc_30_60", "inc_60_100", "
 countyData <- read.csv(file.path(INPUT_CONTROLS_DIR, "2010", "countyData.csv"))
 
 # Read PopSyn XWalk
-popsyn_xwalk <- read.csv(file.path(GEOXWALK_DIR, "geographicCWalk.csv")
+popsyn_xwalk <- read.csv(file.path(GEOXWALK_DIR, "geographicCWalk.csv"))
 ### Build the PUMA to County cross-walk	
 popsyn_xwalk <- popsyn_xwalk %>%	
   rename(county_name = COUNTYNAME)
@@ -816,12 +816,14 @@ countyControlFile <- countyControl
 #-------------------------------------------------------------------------------------------------------------- 
 # Write control files
 #--------------------
+dir.create(file.path(INTERMEDIATE_DIR, POPSYN_YEAR), showWarnings=FALSE)
+
 # -HH, -Pop,
 mazControlFile <- select(mazControlFile, -MAZSEQ, -HHSize_Diff, -HHSize_Max, -HHType_Diff,  
                          -HHType_Max, -Gender_Diff, -Gender_Max, -Age2_Diff, -Age2_Max, 
                          -Male, -Female, -Age_00_19, -Age_20_34, -Age_35_64, -Age_65_up, -Pop, -tempSum)
 colnames(mazControlFile)[colnames(mazControlFile) == 'MAZ_ORIGINAL'] <- 'maz_original'
-write.csv(mazControlFile, file.path(INTERMEDIATE_DIR, YEAR, "mazControlFile.csv"), row.names = F)
+write.csv(mazControlFile, file.path(INTERMEDIATE_DIR, POPSYN_YEAR, "mazControlFile.csv"), row.names = F)
 
 # -TAZ_HH, -TAZ_POP,
 tazControlFile <- select(tazControlFile, -TAZSEQ, -Kids_Diff, -Kids_Max, -Workers_Diff, -Workers_Max, 
@@ -830,10 +832,10 @@ tazControlFile <- select(tazControlFile, -TAZSEQ, -Kids_Diff, -Kids_Max, -Worker
                          -GQ_00_17,	-GQ_18_64,	-GQ_65_up,	-TOT_GQ, -CT10_GQ, -CT_GQ_00_17, -CT_GQ_18_64, 	
                          -CT_GQ_65_up, -CT10_Age_00_19, -CT10_Age_20_34, -CT10_Age_35_64, -CT10_Age_65_up, -TAZ_GQ)
 colnames(tazControlFile)[colnames(tazControlFile) == 'TAZ_ORIGINAL'] <- 'taz_original'
-write.csv(tazControlFile, file.path(INTERMEDIATE_DIR, YEAR, "tazControlFile.csv"), row.names = F)
+write.csv(tazControlFile, file.path(INTERMEDIATE_DIR, POPSYN_YEAR, "tazControlFile.csv"), row.names = F)
 
 countyControlFile <- select(countyControlFile, mtc_county_id, county_name, occupation_management, occupation_manual, 
                             occupation_military, occupation_professional,occupation_retail, 
                             occupation_services)
 countyControlFile[is.na(countyControlFile)] <-0
-write.csv(countyControlFile, file.path(INTERMEDIATE_DIR, YEAR, "countyControlFile.csv"), row.names = F)
+write.csv(countyControlFile, file.path(INTERMEDIATE_DIR, POPSYN_YEAR, "countyControlFile.csv"), row.names = F)

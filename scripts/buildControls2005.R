@@ -15,7 +15,7 @@ suppressMessages(library(dplyr))
 # INPUTS
 #########
 controls2000Dir <- file.path(INTERMEDIATE_DIR, "year_2000")
-controls2005Dir <- file.path(INTERMEDIATE_DIR, "year_2005")
+controls2005Dir <- file.path(INPUT_CONTROLS_DIR, "2005")
 
 # read 2000 controls
 maz2000    <- read.csv(file.path(controls2000Dir, "mazControlFile.csv"))
@@ -223,9 +223,10 @@ tazControlFile <- tempTAZ05 %>%
   
 # WRITE OUTPUTS
 ###############
-write.csv(mazControlFile, file.path(controls2005Dir, "mazControlFile.csv"   ), row.names = F)
-write.csv(tazControlFile, file.path(controls2005Dir, "tazControlFile.csv"   ), row.names = F)
-write.csv(tempCounty05,   file.path(controls2005Dir, "countyControlFile.csv"), row.names = F)
+dir.create(file.path(INTERMEDIATE_DIR, POPSYN_YEAR), showWarnings=FALSE)
+write.csv(mazControlFile, file.path(INTERMEDIATE_DIR, POPSYN_YEAR, "mazControlFile.csv"   ), row.names = F)
+write.csv(tazControlFile, file.path(INTERMEDIATE_DIR, POPSYN_YEAR, "tazControlFile.csv"   ), row.names = F)
+write.csv(tempCounty05,   file.path(INTERMEDIATE_DIR, POPSYN_YEAR, "countyControlFile.csv"), row.names = F)
 
 
 

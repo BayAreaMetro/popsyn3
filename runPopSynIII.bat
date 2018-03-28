@@ -43,9 +43,9 @@ SET CENSUS_API_KEY_FILE=%BOX_POPSYN_APP%\runtime_config\census_api_key.csv
 :: Parameters file [Do not change file name]
 SET PARAMETERS_FILE="%RUNTIME_CONFIG_DIR%\parameters.csv"
 
-:: SET PopSyn_YEAR as year_2000, year_2005, year_2010 or year_2015
+:: SET POPSYN_YEAR as year_2000, year_2005, year_2010 or year_2015
 :: ----------------------------------------------------------------
-SET PopSyn_YEAR=year_2000
+SET POPSYN_YEAR=year_2015
 
 :: SET switch to run HH and GQ PopSyn runs [YES/NO]
 :: ----------------------------------------------------------------
@@ -66,8 +66,8 @@ SET Run_Step_3=YES
 SET downloadCensus=TRUE
 
 :: PopSyn settings file
-SET settingsFile="settings_%PopSyn_YEAR%.xml"
-SET GQsettingsFile="settingsGQ_%PopSyn_YEAR%.xml"
+SET settingsFile="settings_%POPSYN_YEAR%.xml"
+SET GQsettingsFile="settingsGQ_%POPSYN_YEAR%.xml"
 
 :: ############################################################################
 :: ### DATA PROCESSING
@@ -89,13 +89,14 @@ ECHO MYSQL_DATABASE,%DATABASE% >> %PARAMETERS_FILE%
 ECHO MYSQL_USER_NAME,%DB_USER% >> %PARAMETERS_FILE%
 ECHO MYSQL_PASSWORD_FILE,%MYSQL_PWD_FILE% >> %PARAMETERS_FILE%
 ECHO CENSUS_API_KEY_FILE,%CENSUS_API_KEY_FILE% >> %PARAMETERS_FILE%
-ECHO PopSyn_YEAR,%PopSyn_YEAR% >> %PARAMETERS_FILE%
+ECHO POPSYN_YEAR,%POPSYN_YEAR% >> %PARAMETERS_FILE%
 ECHO Run_HH_PopSyn,%Run_HH_PopSyn% >> %PARAMETERS_FILE%
 ECHO Run_GQ_PopSyn,%Run_GQ_PopSyn% >> %PARAMETERS_FILE%
 ECHO Run_Step_1,%Run_Step_1% >> %PARAMETERS_FILE%
 ECHO Run_Step_2,%Run_Step_2% >> %PARAMETERS_FILE%
 ECHO Run_Step_3,%Run_Step_3% >> %PARAMETERS_FILE%
 ECHO downloadCensus,%downloadCensus% >> %PARAMETERS_FILE%
+
 
 ECHO %startTime%%Time%: Running R scripts to create PUMS Table and controls table...
 :: Call R main script to run data processing scripts

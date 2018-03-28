@@ -25,7 +25,7 @@ MYSQL_SERVER         <- trimws(paste(parameters$Value[parameters$Key=="MYSQL_SER
 MYSQL_DATABASE       <- trimws(paste(parameters$Value[parameters$Key=="MYSQL_DATABASE"]))
 MYSQL_USER_NAME      <- trimws(paste(parameters$Value[parameters$Key=="MYSQL_USER_NAME"]))
 MYSQL_PASSWORD_FILE  <- trimws(paste(parameters$Value[parameters$Key=="MYSQL_PASSWORD_FILE"]))
-YEAR                 <- trimws(paste(parameters$Value[parameters$Key=="PopSyn_YEAR"]))
+POPSYN_YEAR          <- trimws(paste(parameters$Value[parameters$Key=="POPSYN_YEAR"]))
 Run_HH_PopSyn        <- trimws(paste(parameters$Value[parameters$Key=="Run_HH_PopSyn"]))
 Run_GQ_PopSyn        <- trimws(paste(parameters$Value[parameters$Key=="Run_GQ_PopSyn"]))
 
@@ -47,7 +47,7 @@ mysql_connection <- dbConnect(MySQL(), user = MYSQL_USER_NAME, password = mysql_
 ### HH Population
 if(Run_HH_PopSyn=="YES"){
   # read the synthetic population tables	
-  year_num <- substr(YEAR, nchar(YEAR)-3, nchar(YEAR))
+  year_num <- substr(POPSYN_YEAR, nchar(POPSYN_YEAR)-3, nchar(POPSYN_YEAR))
   synpop_hh  <- dbReadTable(conn = mysql_connection, name = paste('synpop_hh', year_num, sep = '_'))	
   synpop_hh <- synpop_hh[order(synpop_hh$tempId), ]
   synpop_per <- dbReadTable(conn = mysql_connection, name = paste('synpop_person', year_num, sep = '_'))
@@ -103,7 +103,7 @@ if(Run_HH_PopSyn=="YES"){
 ### GQ Population
 if(Run_GQ_PopSyn=="YES"){
   # read the synthetic population tables	
-  year_num <- substr(YEAR, nchar(YEAR)-3, nchar(YEAR))
+  year_num <- substr(POPSYN_YEAR, nchar(POPSYN_YEAR)-3, nchar(POPSYN_YEAR))
   synpop_hh_gq  <- dbReadTable(conn = mysql_connection, name = paste('synpop_hh_gq', year_num, sep = '_'))	
   synpop_hh_gq <- synpop_hh_gq[order(synpop_hh_gq$tempId), ]
   synpop_per_gq <- dbReadTable(conn = mysql_connection, name = paste('synpop_person_gq', year_num, sep = '_'))
@@ -230,8 +230,8 @@ names(persons)[names(persons) == 'weeks'] <- 'wkw'
 names(persons)[names(persons) == 'miltary'] <- 'mil'
 names(persons)[names(persons) == 'educ'] <- 'schl'
 
-hh_filename  <- file.path(OUTPUT_DIR, paste0("households_",YEAR,".csv"))
-per_filename <- file.path(OUTPUT_DIR, paste0("persons_",YEAR,".csv"))
+hh_filename  <- file.path(OUTPUT_DIR, paste0("households_",POPSYN_YEAR,".csv"))
+per_filename <- file.path(OUTPUT_DIR, paste0("persons_",POPSYN_YEAR,".csv"))
 
 write.csv(households, hh_filename,  row.names = F, quote = F)
 write.csv(persons,    per_filename, row.names = F, quote = F)

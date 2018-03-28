@@ -45,7 +45,7 @@ MYSQL_DATABASE       <- trimws(paste(parameters$Value[parameters$Key=="MYSQL_DAT
 MYSQL_USER_NAME      <- trimws(paste(parameters$Value[parameters$Key=="MYSQL_USER_NAME"]))
 MYSQL_PASSWORD_FILE  <- trimws(paste(parameters$Value[parameters$Key=="MYSQL_PASSWORD_FILE"]))
 CENSUS_API_KEY_FILE  <- trimws(paste(parameters$Value[parameters$Key=="CENSUS_API_KEY_FILE"]))
-YEAR                 <- trimws(paste(parameters$Value[parameters$Key=="PopSyn_YEAR"]))
+POPSYN_YEAR          <- trimws(paste(parameters$Value[parameters$Key=="POPSYN_YEAR"]))
 Run_HH_PopSyn        <- trimws(paste(parameters$Value[parameters$Key=="Run_HH_PopSyn"]))
 Run_GQ_PopSyn        <- trimws(paste(parameters$Value[parameters$Key=="Run_GQ_PopSyn"]))
 Run_Step_1           <- trimws(paste(parameters$Value[parameters$Key=="Run_Step_1"]))
@@ -76,16 +76,16 @@ if (Run_Step_1=="YES"){
 
 ## Step 02 Build Controls
 if (Run_Step_2=="YES"){
-  if(YEAR=="year_2000"){
+  if(POPSYN_YEAR=="year_2000"){
     source("buildControls2000.R")
   }
-  if(YEAR=="year_2005"){
+  if(POPSYN_YEAR=="year_2005"){
     source("buildControls2005.R")
   }
-  if(YEAR=="year_2010"){
+  if(POPSYN_YEAR=="year_2010"){
     source("buildControls2010.R")
   }
-  if(YEAR=="year_2015"){
+  if(POPSYN_YEAR=="year_2015"){
     source("buildControls2015.R")
   }
 }

@@ -695,14 +695,14 @@ countyControlFile <- countyControl
 #-------------------------------------------------------------------------------------------------------------- 
 # Write control files
 #--------------------
-dir.create(file.path(INTERMEDIATE_DIR, YEAR), showWarnings=FALSE)
+dir.create(file.path(INTERMEDIATE_DIR, POPSYN_YEAR), showWarnings=FALSE)
 
 # -HH, -Pop,
 mazControlFile <- select(mazControlFile, -MAZSEQ, -HHSize_Diff, -HHSize_Max, 
                          -Gender_Diff, -Gender_Max, -Age2_Diff, -Age2_Max, -tempSum)
 colnames(mazControlFile)[colnames(mazControlFile) == 'MAZ_ORIGINAL'] <- 'maz_original'
 mazControlFile[is.na(mazControlFile)] <-0
-write.csv(mazControlFile, file.path(INTERMEDIATE_DIR, YEAR, "mazControlFile.csv"), row.names = F)
+write.csv(mazControlFile, file.path(INTERMEDIATE_DIR, POPSYN_YEAR, "mazControlFile.csv"), row.names = F)
 
 # -TAZ_HH, -TAZ_POP,
 tazControlFile <- select(tazControlFile, -TAZSEQ, -Kids_Diff, -Kids_Max,  -Workers_Diff, -Workers_Max,
@@ -712,10 +712,10 @@ tazControlFile <- select(tazControlFile, -TAZSEQ, -Kids_Diff, -Kids_Max,  -Worke
                          -percent_18_19,-percent_20_34,-percent_35_64, -PUMA, -tempSum)
 colnames(tazControlFile)[colnames(tazControlFile) == 'TAZ_ORIGINAL'] <- 'taz_original'
 tazControlFile[is.na(tazControlFile)] <-0
-write.csv(tazControlFile, file.path(INTERMEDIATE_DIR, YEAR, "tazControlFile.csv"), row.names = F)
+write.csv(tazControlFile, file.path(INTERMEDIATE_DIR, POPSYN_YEAR, "tazControlFile.csv"), row.names = F)
 
 countyControlFile <- select(countyControlFile, mtc_county_id, county_name, occupation_management, occupation_manual, 
                             occupation_military, occupation_professional,occupation_retail, 
                             occupation_services)
 countyControlFile[is.na(countyControlFile)] <-0
-write.csv(countyControlFile, file.path(INTERMEDIATE_DIR, YEAR, "countyControlFile.csv"), row.names = F)
+write.csv(countyControlFile, file.path(INTERMEDIATE_DIR, POPSYN_YEAR, "countyControlFile.csv"), row.names = F)

@@ -29,7 +29,7 @@ tazCounty <- geogXWalk[,c("TAZ_ORIGINAL", "MTCCountyID")] %>%
   summarise(MTCCountyID = max(MTCCountyID))
 
 # read 2015 data
-maz2015Data <- read.csv(paste(controls2015Dir, "hh15_maz.csv", sep = "\\"))
+maz2015Data <- read.csv(file.path(INPUT_CONTROLS_DIR,"2015","hh15_maz.csv"))
 
 # PROCESS DATA
 ##############
@@ -226,6 +226,7 @@ tazControlFile <- tempTAZ05 %>%
   
 # WRITE OUTPUTS
 ###############
+dir.create(file.path(INTERMEDIATE_DIR, POPSYN_YEAR), showWarnings=FALSE)
 write.csv(mazControlFile, file.path(controls2015Dir, "mazControlFile.csv"   ), row.names = F)
 write.csv(tazControlFile, file.path(controls2015Dir, "tazControlFile.csv"   ), row.names = F)
 write.csv(tempCounty05,   file.path(controls2015Dir, "countyControlFile.csv"), row.names = F)

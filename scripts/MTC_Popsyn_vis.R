@@ -13,7 +13,7 @@
 #     SDEV - Standard deviation of precentage difference
 
 # Inputs and settings that need to be changed:
-#  1. columnMpa needs to be updated
+#  1. columnMap needs to be updated
 #  2. set the year for the run
 #  3. set GQ_RUN == TRUE for a GQ run validation
 #
@@ -37,7 +37,7 @@ MYSQL_SERVER         <- trimws(paste(parameters$Value[parameters$Key=="MYSQL_SER
 MYSQL_DATABASE       <- trimws(paste(parameters$Value[parameters$Key=="MYSQL_DATABASE"]))
 MYSQL_USER_NAME      <- trimws(paste(parameters$Value[parameters$Key=="MYSQL_USER_NAME"]))
 MYSQL_PASSWORD_FILE  <- trimws(paste(parameters$Value[parameters$Key=="MYSQL_PASSWORD_FILE"]))
-YEAR                 <- trimws(paste(parameters$Value[parameters$Key=="PopSyn_YEAR"]))
+POPSYN_YEAR          <- trimws(paste(parameters$Value[parameters$Key=="POPSYN_YEAR"]))
 Run_HH_PopSyn        <- trimws(paste(parameters$Value[parameters$Key=="Run_HH_PopSyn"]))
 Run_GQ_PopSyn        <- trimws(paste(parameters$Value[parameters$Key=="Run_GQ_PopSyn"]))
 
@@ -75,13 +75,13 @@ if(Run_HH_PopSyn=="YES"){
     
     #Set the table name to query
     if(geography == "maz"){
-      CtableName = ifelse(GQ_RUN,paste('control_totals_maz_gq',  YEAR, sep = '_'), paste('control_totals_maz',  YEAR, sep = '_'))
+      CtableName = ifelse(GQ_RUN,paste('control_totals_maz_gq', POPSYN_YEAR, sep = '_'), paste('control_totals_maz', POPSYN_YEAR, sep = '_'))
       StableName = ifelse(GQ_RUN, "gqmazSummaryView", "mazSummaryView")
     }else if(geography == "taz"){
-      CtableName = paste('control_totals_taz',  YEAR, sep = '_')
+      CtableName = paste('control_totals_taz', POPSYN_YEAR, sep = '_')
       StableName = ifelse(GQ_RUN, "gqtazSummaryView", "tazSummaryView")
     }else if(geography == metaGeography){
-      CtableName = ifelse(GQ_RUN,paste('control_totals_meta_gq',  YEAR, sep = '_'), paste('control_totals_meta',  YEAR, sep = '_'))
+      CtableName = ifelse(GQ_RUN,paste('control_totals_meta_gq', POPSYN_YEAR, sep = '_'), paste('control_totals_meta', POPSYN_YEAR, sep = '_'))
       StableName = ifelse(GQ_RUN, "gqmetaSummaryView", "metaSummaryView")
     }else{
       stop("Incorrect geography specified")
@@ -142,7 +142,7 @@ if(Run_HH_PopSyn=="YES"){
         coord_cartesian(xlim = c(-xaxisLimit, xaxisLimit)) +
         geom_vline(xintercept=c(0), colour = "steelblue")+
         labs(title = plotTitle)
-      ggsave(file.path(VALIDATION_OUTPUT_DIR, paste0(controlID,"_",YEAR,".png")), width=9,height=6)
+      ggsave(file.path(VALIDATION_OUTPUT_DIR, paste0(controlID,"_",POPSYN_YEAR,".png")), width=9,height=6)
     }
     
     cat("\n Processed Control: ", controlName) 
@@ -157,12 +157,12 @@ if(Run_HH_PopSyn=="YES"){
     return(rmse(ACTUAL, EXPECTED, na.rm=TRUE))
   }
   
-  mapFile <- ifelse(GQ_RUN, "columnMapMTCGQ.csv", paste0("columnMapMTC_", YEAR,".csv"))
+  mapFile <- ifelse(GQ_RUN, "columnMapMTCGQ.csv", paste0("columnMapMTC_",POPSYN_YEAR,".csv"))
   columnMap <- read.csv(file.path(RUNTIME_CONFIG_DIR,mapFile))  	   #Read in column equivalency between control tables and summary tables
   
   ## CREATE VIEWS
-  viewScript <- ifelse(GQ_RUN, paste(WORKING_DIR, "/scripts/createSummaryViewsGQ_", YEAR, ".R", sep = ""), 
-                       paste(WORKING_DIR, "/scripts/createSummaryViews_", YEAR, ".R", sep = ""))
+  viewScript <- ifelse(GQ_RUN, paste(WORKING_DIR, "/scripts/createSummaryViewsGQ_", POPSYN_YEAR, ".R", sep = ""), 
+                       paste(WORKING_DIR, "/scripts/createSummaryViews_", POPSYN_YEAR, ".R", sep = ""))
   source(viewScript)
   
   # MySQL connection	
@@ -172,8 +172,8 @@ if(Run_HH_PopSyn=="YES"){
   stats <- apply(columnMap, 1, function(x) procControl(x["GEOGRAPHY"], x["NAME"], x["CONTROL"],x["SUMMARY"]))
   #close(channel)
   stats <- do.call(rbind,stats)
-  stats_outfile <- ifelse(GQ_RUN, paste0("stats_gq", "_", YEAR, ".csv"),
-                                  paste0("stats", "_", YEAR, ".csv"))
+  stats_outfile <- ifelse(GQ_RUN, paste0("stats_gq", "_", POPSYN_YEAR, ".csv"),
+                                  paste0("stats", "_", POPSYN_YEAR, ".csv"))
   write.csv(stats, file.path(VALIDATION_OUTPUT_DIR,stats_outfile), row.names = FALSE)
   
   #Convergence plot
@@ -186,7 +186,7 @@ if(Run_HH_PopSyn=="YES"){
     coord_flip(ylim = c(-100, 100)) +
     theme_bw() +
     theme(plot.title=element_text(size=12, lineheight=.9, face="bold", vjust=1))
-  p2_filename <- ifelse(GQ_RUN, paste0("PopSyn Convergence-sdev_GQ", "_", YEAR, ".jpeg"), paste0("PopSyn Convergence-sdev", "_", YEAR, ".jpeg"))
+  p2_filename <- ifelse(GQ_RUN, paste0("PopSyn Convergence-sdev_GQ", "_", POPSYN_YEAR, ".jpeg"), paste0("PopSyn Convergence-sdev", "_", POPSYN_YEAR, ".jpeg"))
   ggsave(file=file.path(VALIDATION_OUTPUT_DIR,p2_filename), width=8,height=10)
   
   #Convergence plot
@@ -200,7 +200,7 @@ if(Run_HH_PopSyn=="YES"){
     theme_bw() +
     theme(plot.title=element_text(size=12, lineheight=.9, face="bold", vjust=1))
   
-  p3_filename <- ifelse(GQ_RUN, paste0("PopSyn Convergence-PRMSE_GQ", "_", YEAR, ".jpeg"), paste0("PopSyn Convergence-PRMSE", "_", YEAR, ".jpeg")) 
+  p3_filename <- ifelse(GQ_RUN, paste0("PopSyn Convergence-PRMSE_GQ", "_", POPSYN_YEAR, ".jpeg"), paste0("PopSyn Convergence-PRMSE", "_", POPSYN_YEAR, ".jpeg")) 
   ggsave(file=file.path(VALIDATION_OUTPUT_DIR,p3_filename), width=8,height=10)
   
   #Uniformity Analysis
@@ -229,8 +229,8 @@ if(Run_HH_PopSyn=="YES"){
           axis.text.x  = element_text(angle=90, size=5),
           axis.text.y  = element_text(size=5))  +
     scale_y_continuous(labels = percent_format())
-  ef_filename <- ifelse(GQ_RUN, paste0("EF-Distribution_GQ", "_", YEAR, ".png"),
-                                paste0("EF-Distribution", "_", YEAR, ".png"))
+  ef_filename <- ifelse(GQ_RUN, paste0("EF-Distribution_GQ", "_", POPSYN_YEAR, ".png"),
+                                paste0("EF-Distribution", "_", POPSYN_YEAR, ".png"))
   ggsave(file.path(VALIDATION_OUTPUT_DIR, ef_filename), width=15,height=10)
   
   uAnalysisPUMA <- group_by(uniformity, PUMA)
@@ -243,7 +243,7 @@ if(Run_HH_PopSyn=="YES"){
                              ,EXP_MIN = min(EXPANSIONFACTOR)
                              ,EXP_MAX = max(EXPANSIONFACTOR)
                              ,RMSE = myRMSE(EXPANSIONFACTOR, EXP, N))
-  univ_filename <- ifelse(GQ_RUN, paste0("uniformity", "_", YEAR, ".csv"), paste0("uniformity_GQ", "_", YEAR, ".csv"))
+  univ_filename <- ifelse(GQ_RUN, paste0("uniformity", "_", POPSYN_YEAR, ".csv"), paste0("uniformity_GQ", "_", POPSYN_YEAR, ".csv"))
   write.csv(uAnalysisPUMA, file.path(VALIDATION_OUTPUT_DIR, univ_filename), row.names=FALSE)
   
   #fin
@@ -262,13 +262,13 @@ if(Run_GQ_PopSyn=="YES"){
     
     #Set the table name to query
     if(geography == "maz"){
-      CtableName = ifelse(GQ_RUN,paste('control_totals_maz_gq',  YEAR, sep = '_'), paste('control_totals_maz',  YEAR, sep = '_'))
+      CtableName = ifelse(GQ_RUN,paste('control_totals_maz_gq', POPSYN_YEAR, sep = '_'), paste('control_totals_maz', POPSYN_YEAR, sep = '_'))
       StableName = ifelse(GQ_RUN, "gqmazSummaryView", "mazSummaryView")
     }else if(geography == "taz"){
-      CtableName = paste('control_totals_taz',  YEAR, sep = '_')
+      CtableName = paste('control_totals_taz', POPSYN_YEAR, sep = '_')
       StableName = ifelse(GQ_RUN, "gqtazSummaryView", "tazSummaryView")
     }else if(geography == metaGeography){
-      CtableName = ifelse(GQ_RUN,paste('control_totals_meta_gq',  YEAR, sep = '_'), paste('control_totals_meta',  YEAR, sep = '_'))
+      CtableName = ifelse(GQ_RUN,paste('control_totals_meta_gq', POPSYN_YEAR, sep = '_'), paste('control_totals_meta', POPSYN_YEAR, sep = '_'))
       StableName = ifelse(GQ_RUN, "gqmetaSummaryView", "metaSummaryView")
     }else{
       stop("Incorrect geography specified")
@@ -329,7 +329,7 @@ if(Run_GQ_PopSyn=="YES"){
         coord_cartesian(xlim = c(-xaxisLimit, xaxisLimit)) +
         geom_vline(xintercept=c(0), colour = "steelblue")+
         labs(title = plotTitle)
-      ggsave(file.path(VALIDATION_OUTPUT_DIR, paste0(controlID,"_",YEAR,".png")), width=9,height=6)
+      ggsave(file.path(VALIDATION_OUTPUT_DIR, paste0(controlID,"_",POPSYN_YEAR,".png")), width=9,height=6)
     }
     
     cat("\n Processed Control: ", controlName) 
@@ -344,12 +344,12 @@ if(Run_GQ_PopSyn=="YES"){
     return(rmse(ACTUAL, EXPECTED, na.rm=TRUE))
   }
   
-  mapFile <- ifelse(GQ_RUN, "columnMapMTCGQ.csv", paste("columnMapMTC_", YEAR,".csv", sep = ""))
+  mapFile <- ifelse(GQ_RUN, "columnMapMTCGQ.csv", paste0("columnMapMTC_",POPSYN_YEAR,".csv"))
   columnMap <- read.csv(file.path(RUNTIME_CONFIG_DIR,mapFile))  #Read in column equivalency between control tables and summary tables
   
   ## CREATE VIEWS
-  viewScript <- ifelse(GQ_RUN, paste(WORKING_DIR, "/scripts/createSummaryViewsGQ_", YEAR, ".R", sep = ""), 
-                               paste(WORKING_DIR, "/scripts/createSummaryViews_", YEAR, ".R", sep = ""))
+  viewScript <- ifelse(GQ_RUN, paste(WORKING_DIR, "/scripts/createSummaryViewsGQ_", POPSYN_YEAR, ".R", sep = ""), 
+                               paste(WORKING_DIR, "/scripts/createSummaryViews_", POPSYN_YEAR, ".R", sep = ""))
   source(viewScript)
   
   # MySQL connection	
@@ -359,8 +359,8 @@ if(Run_GQ_PopSyn=="YES"){
   stats <- apply(columnMap, 1, function(x) procControl(x["GEOGRAPHY"], x["NAME"], x["CONTROL"],x["SUMMARY"]))
   #close(channel)
   stats <- do.call(rbind,stats)
-  stats_outfile <- ifelse(GQ_RUN, paste0("stats_gq", "_", YEAR, ".csv"),
-                                  paste0("stats", "_", YEAR, ".csv"))
+  stats_outfile <- ifelse(GQ_RUN, paste0("stats_gq", "_", POPSYN_YEAR, ".csv"),
+                                  paste0("stats", "_", POPSYN_YEAR, ".csv"))
   write.csv(stats, file.path(VALIDATION_OUTPUT_DIR, stats_outfile), row.names = FALSE)
   
   #Convergence plot
@@ -373,7 +373,7 @@ if(Run_GQ_PopSyn=="YES"){
     coord_flip(ylim = c(-100, 100)) +
     theme_bw() +
     theme(plot.title=element_text(size=12, lineheight=.9, face="bold", vjust=1))
-  p2_filename <- ifelse(GQ_RUN, paste0("PopSyn Convergnce-sdev_GQ", "_", YEAR, ".jpeg"), paste0("PopSyn Convergence-sdev", "_", YEAR, ".jpeg"))
+  p2_filename <- ifelse(GQ_RUN, paste0("PopSyn Convergnce-sdev_GQ", "_", POPSYN_YEAR, ".jpeg"), paste0("PopSyn Convergence-sdev", "_", POPSYN_YEAR, ".jpeg"))
   ggsave(file=file.path(VALIDATION_OUTPUT_DIR,p2_filename), width=8,height=10)
   
   #Convergence plot
@@ -387,7 +387,7 @@ if(Run_GQ_PopSyn=="YES"){
     theme_bw() +
     theme(plot.title=element_text(size=12, lineheight=.9, face="bold", vjust=1))
   
-  p3_filename <- ifelse(GQ_RUN, paste0("PopSyn Convergence-PRMSE_GQ", "_", YEAR, ".jpeg"), paste0("PopSyn Convergence-PRMSE", "_", YEAR, ".jpeg")) 
+  p3_filename <- ifelse(GQ_RUN, paste0("PopSyn Convergence-PRMSE_GQ", "_", POPSYN_YEAR, ".jpeg"), paste0("PopSyn Convergence-PRMSE", "_", POPSYN_YEAR, ".jpeg")) 
   ggsave(file=file.path(VALIDATION_OUTPUT_DIR,p3_filename), width=8,height=10)
   
   #Uniformity Analysis
@@ -416,8 +416,8 @@ if(Run_GQ_PopSyn=="YES"){
           axis.text.x  = element_text(angle=90, size=5),
           axis.text.y  = element_text(size=5))  +
     scale_y_continuous(labels = percent_format())
-  ef_filename <- ifelse(GQ_RUN, paste0("EF-Distribution_GQ","_",YEAR,".png"),
-                                paste0("EF-Distribution"   ,"_",YEAR,".png"))
+  ef_filename <- ifelse(GQ_RUN, paste0("EF-Distribution_GQ","_",POPSYN_YEAR,".png"),
+                                paste0("EF-Distribution"   ,"_",POPSYN_YEAR,".png"))
   ggsave(file.path(VALIDATION_OUTPUT_DIR,ef_filename), width=15,height=10)
   
   uAnalysisPUMA <- group_by(uniformity, PUMA)
@@ -430,8 +430,8 @@ if(Run_GQ_PopSyn=="YES"){
                              ,EXP_MIN = min(EXPANSIONFACTOR)
                              ,EXP_MAX = max(EXPANSIONFACTOR)
                              ,RMSE = myRMSE(EXPANSIONFACTOR, EXP, N))
-  univ_filename <- ifelse(GQ_RUN, paste0("uniformity", "_", YEAR, ".csv"),
-                                  paste0("uniformity_GQ", "_", YEAR, ".csv"))
+  univ_filename <- ifelse(GQ_RUN, paste0("uniformity", "_", POPSYN_YEAR, ".csv"),
+                                  paste0("uniformity_GQ", "_", POPSYN_YEAR, ".csv"))
   write.csv(uAnalysisPUMA, file.path(VALIDATION_OUTPUT_DIR, univ_filename), row.names=FALSE)
   
   #fin

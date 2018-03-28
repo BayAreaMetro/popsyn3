@@ -1,5 +1,4 @@
-Population Synthesizer
-=======
+# Population Synthesizer
 
 MTC's Travel Model Two modeling system (currently under development) will use this population synthesizer.  For details on Travel Model Two, please see the [project webpage](http://bayareametro.github.io/travel-model-two/) and the [project GitHub repository](https://github.com/BayAreaMetro/travel-model-two). 
 
@@ -13,9 +12,7 @@ Within MTC's environment, to build from source:
 
 See also [`go_go_build`](go_go_build.bat). 
 
-
-File Structure
-==============
+# Repository File Structure
 
 * application - older files.  Will be cleaned/deprecated.
 * build - Built java classes, created when `go_go_build.bat` is run.
@@ -25,3 +22,30 @@ File Structure
 * runtime - final compiled executables and configuration
 * scripts - batch and R scripts used to run the entire PopSyn process
 * src - Not in github.  Put source java files here for building.
+
+# Output
+
+## Synthesized Households
+
+Name | Definition | Scale
+-----|------------|------
+HHID | Unique household ID number | Integer
+serialno | PUMA serial number |
+persons | Number of persons in the household | Integer, 1 and up
+hinc | tenure
+bldgsz |
+hh_workers_from_esr |
+hh_income_2010 |
+vehicl |
+hht |
+unittype | 
+npf |
+pres_child |
+GQFlag |
+GQType |
+
+## Synthesized Persons
+
+Name | Definition | Scale
+-----|------------|------
+
